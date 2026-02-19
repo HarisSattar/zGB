@@ -6,6 +6,15 @@ pub const Flags = packed struct(u8) {
     h: u1,
     n: u1,
     z: u1,
+
+    pub fn format(self: @This(), writer: anytype) !void {
+        try writer.print("Flags:\n", .{});
+        try writer.print("Z: 0x{X}", .{self.z});
+        try writer.print(" N: 0x{X}", .{self.n});
+        try writer.print(" H: 0x{X}", .{self.h});
+        try writer.print(" C: 0x{X}\n", .{self.c});
+        try writer.print("Bits 3-0: 0x{X:0<4}\n", .{self.zerobits});
+    }
 };
 
 const AF = packed union { pair: u16, bytes: packed struct(u16) {
@@ -36,5 +45,19 @@ pub const Registers = packed struct(u96) {
             .pc = 0x0100,
             .sp = 0xFFFE,
         };
+    }
+
+    pub fn format(
+        self: @This(),
+        writer: anytype,
+    ) !void {
+        try writer.print("Registers\n", .{});
+        try writer.print("AF pair:  0x{X:0>4}\n", .{self.af.pair});
+        try writer.print("BC pair:  0x{X:0>4}\n", .{self.bc.pair});
+        try writer.print("DE pair:  0x{X:0>4}\n", .{self.de.pair});
+        try writer.print("HL pair:  0x{X:0>4}\n", .{self.hl.pair});
+        try writer.print("PC:       0x{X:0>4}\n", .{self.pc});
+        try writer.print("SP:       0x{X:0>4}\n", .{self.sp});
+        try writer.print("{f}\n", .{self.af.bytes.f});
     }
 };
