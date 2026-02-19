@@ -1,8 +1,8 @@
 const std = @import("std");
-const Registers = @import("cpu.zig").Registers;
+const Cpu = @import("cpu.zig").Cpu;
 
 pub fn main() void {
-    const registers = Registers.init();
+    const cpu = Cpu.init();
 
-    std.debug.print("{f}\n", .{registers});
+    std.debug.print("{f}\n", .{cpu.registers});
 }

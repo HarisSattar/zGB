@@ -1,4 +1,5 @@
 const std = @import("std");
+const Memory = @import("memory.zig").Memory;
 
 pub const Flags = packed struct(u8) {
     zerobits: u4 = 0x00,
@@ -59,5 +60,17 @@ pub const Registers = packed struct(u96) {
         try writer.print("PC:       0x{X:0>4}\n", .{self.pc});
         try writer.print("SP:       0x{X:0>4}\n", .{self.sp});
         try writer.print("{f}\n", .{self.af.bytes.f});
+    }
+};
+
+pub const Cpu = struct {
+    registers: Registers,
+    memory: Memory,
+
+    pub fn init() Cpu {
+        return Cpu{
+            .registers = Registers.init(),
+            .memory = Memory.init(),
+        };
     }
 };
