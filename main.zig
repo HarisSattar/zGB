@@ -6,5 +6,5 @@ pub fn main() void {
 
     const registers = Registers.init();
 
-    std.debug.print("AF pair: 0x{X:0>4}", .{registers.af.pair});
+    std.debug.print("AF pair: 0xx{X:0>4}", .{registers.af.pair});
 }
