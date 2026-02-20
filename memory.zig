@@ -31,15 +31,19 @@ pub const Memory = struct {
     }
 
     pub fn read(self: *const @This(), address: u16) u8 {
-        if (address >= MemoryMap.ROM0.start) {
-            // read from cartridge
-            return;
-        } else if (address == 0xFF00) {
-            // get the joy pad input
-            return;
-        } else {
-            return readByte(self, address);
-        }
+        return switch (address) {
+            MemoryMap.ROM0.start...MemoryMap.ROM0.end => 0x00,
+            MemoryMap.ROM1_BANKED.start...MemoryMap.ROM1_BANKED.end => 0x00,
+            MemoryMap.VRAM.start...MemoryMap.VRAM.end => 0x00,
+            MemoryMap.SRAM.start...MemoryMap.SRAM.end => 0x00,
+            MemoryMap.WRAM0.start...MemoryMap.WRAM0.end => self.readByte(address),
+            MemoryMap.WRAM1.start...MemoryMap.WRAM1.end => 0x00,
+            MemoryMap.ECHO_RAM.start...MemoryMap.ECHO_RAM.end => 0x00,
+            MemoryMap.OAM.start...MemoryMap.OAM.end => 0x00,
+            MemoryMap.IO.start...MemoryMap.IO.end => 0x00,
+            MemoryMap.HRAM.start...MemoryMap.HRAM.start => 0x00,
+            MemoryMap.IE => 0x00,
+        };
     }
 
     fn readByte(self: *const @This(), address: u16) u8 {
