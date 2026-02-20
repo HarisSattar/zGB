@@ -1,3 +1,5 @@
+const Cartridge = @import("cartridge.zig");
+
 const MEMORY_SIZE = 0x10000;
 
 pub const MemoryMap = struct {
@@ -20,37 +22,65 @@ pub const AddressRange = struct {
 };
 
 pub const Memory = struct {
-    map: [MEMORY_SIZE]u8 = undefined,
+    vram: [0x2000]u8 = .{0} ** 0x2000,
+    wram: [0x2000]u8 = .{0} ** 0x2000,
+    hram: [0x007F]u8 = .{0} ** 0x007F,
+    cartridge: Cartridge = .{},
     boot_rom_enabled: bool = true,
-    // TODO: need a cartridge
-
-    pub fn init() Memory {
-        return Memory{
-            .map = [_]u8{0} ** MEMORY_SIZE,
-        };
-    }
 
     pub fn read(self: *const @This(), address: u16) u8 {
         return switch (address) {
-            MemoryMap.ROM0.start...MemoryMap.ROM0.end => 0x00,
-            MemoryMap.ROM1_BANKED.start...MemoryMap.ROM1_BANKED.end => 0x00,
-            MemoryMap.VRAM.start...MemoryMap.VRAM.end => 0x00,
+            MemoryMap.ROM0.start...MemoryMap.ROM0.end => self.cartridge.read(address),
+            MemoryMap.ROM1_BANKED.start...MemoryMap.ROM1_BANKED.end => self.cartridge.read(address),
+            MemoryMap.VRAM.start...MemoryMap.VRAM.end => self.readVram(address),
             MemoryMap.SRAM.start...MemoryMap.SRAM.end => 0x00,
-            MemoryMap.WRAM0.start...MemoryMap.WRAM0.end => self.readByte(address),
-            MemoryMap.WRAM1.start...MemoryMap.WRAM1.end => 0x00,
-            MemoryMap.ECHO_RAM.start...MemoryMap.ECHO_RAM.end => 0x00,
+            MemoryMap.WRAM0.start...MemoryMap.WRAM0.end => self.readWram(address),
+            MemoryMap.WRAM1.start...MemoryMap.WRAM1.end => self.readWram(address),
+            MemoryMap.ECHO_RAM.start...MemoryMap.ECHO_RAM.end => self.readWram(address - 0x2000),
             MemoryMap.OAM.start...MemoryMap.OAM.end => 0x00,
             MemoryMap.IO.start...MemoryMap.IO.end => 0x00,
-            MemoryMap.HRAM.start...MemoryMap.HRAM.start => 0x00,
+            MemoryMap.HRAM.start...MemoryMap.HRAM.end => self.readHram(address),
             MemoryMap.IE => 0x00,
         };
     }
 
-    fn readByte(self: *const @This(), address: u16) u8 {
-        return self.map[address];
+    pub fn write(self: *const @This(), address: u16, value: u8) void {
+        switch (address) {
+            MemoryMap.ROM0.start...MemoryMap.ROM0.end => return,
+            MemoryMap.ROM1_BANKED.start...MemoryMap.ROM1_BANKED.end => return,
+            MemoryMap.VRAM.start...MemoryMap.VRAM.end => self.writeVram(address, value),
+            MemoryMap.SRAM.start...MemoryMap.SRAM.end => {},
+            MemoryMap.WRAM0.start...MemoryMap.WRAM0.end => self.writeWram(address, value),
+            MemoryMap.WRAM1.start...MemoryMap.WRAM1.end => self.writeWram(address, value),
+            MemoryMap.ECHO_RAM.start...MemoryMap.ECHO_RAM.end => self.writeWram(address - 0x2000, value),
+            MemoryMap.OAM.start...MemoryMap.OAM.end => {},
+            MemoryMap.IO.start...MemoryMap.IO.end => {},
+            MemoryMap.HRAM.start...MemoryMap.HRAM.end => self.writeHram(address, value),
+            MemoryMap.IE => {},
+        }
     }
 
-    fn writeByte(self: *@This(), address: u16, byte: u8) void {
-        self.map[address] = byte;
+    fn readVram(self: *const @This(), address: u16) u8 {
+        return self.vram[address - 0x8000];
+    }
+
+    fn readWram(self: *const @This(), address: u16) u8 {
+        return self.wram[address - 0xC000];
+    }
+
+    fn readHram(self: *const @This(), address: u16) u8 {
+        return self.hram[address - 0xFF80];
+    }
+
+    fn writeVram(self: *const @This(), address: u16, value: u8) void {
+        self.vram[address - 0x8000] = value;
+    }
+
+    fn writeWram(self: *const @This(), address: u16, value: u8) void {
+        self.wram[address - 0xC000] = value;
+    }
+
+    fn writeHram(self: *const @This(), address: u16, value: u8) void {
+        self.hram[address - 0xFF80] = value;
     }
 };
