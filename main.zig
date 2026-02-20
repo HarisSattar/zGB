@@ -1,8 +1,10 @@
 const std = @import("std");
-const Cpu = @import("cpu.zig").Cpu;
+const GameBoy = @import("gameboy.zig").GameBoy;
 
-pub fn main() void {
-    const cpu: Cpu = .{};
+pub fn main() !void {
+    var gameBoy: GameBoy = .{};
 
-    std.debug.print("{f}", .{cpu.registers});
+    std.debug.print("{f}\n", .{gameBoy.cpu.registers});
+
+    try gameBoy.memory.cartridge.load("tetris.gb");
 }

@@ -48,7 +48,7 @@ pub const Registers = packed struct(u96) {
         try writer.print("HL pair:  0x{X:0>4}\n", .{self.hl.pair});
         try writer.print("PC:       0x{X:0>4}\n", .{self.pc});
         try writer.print("SP:       0x{X:0>4}\n", .{self.sp});
-        try writer.print("{f}", .{self.af.bytes.f});
+        try writer.print("{f}\n", .{self.af.bytes.f});
     }
 };
 

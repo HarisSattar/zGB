@@ -1,4 +1,6 @@
-const Cartridge = @import("cartridge.zig");
+const std = @import("std");
+
+const Cartridge = @import("cartridge.zig").Cartridge;
 
 const MEMORY_SIZE = 0x10000;
 
@@ -22,10 +24,11 @@ pub const AddressRange = struct {
 };
 
 pub const Memory = struct {
+    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     vram: [0x2000]u8 = .{0} ** 0x2000,
     wram: [0x2000]u8 = .{0} ** 0x2000,
     hram: [0x007F]u8 = .{0} ** 0x007F,
-    cartridge: Cartridge = .{},
+    cartridge: Cartridge = .{ .allocator = gpa.allocator() },
     boot_rom_enabled: bool = true,
 
     pub fn read(self: *const @This(), address: u16) u8 {
