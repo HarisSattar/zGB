@@ -54,5 +54,4 @@ pub const Registers = packed struct(u96) {
 
 pub const Cpu = struct {
     registers: Registers = .{},
-    memory: Memory = .{},
 };
