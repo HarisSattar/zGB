@@ -1,7 +1,6 @@
 const std = @import("std");
 
 pub const Cartridge = struct {
-    allocator: std.mem.Allocator,
     cartridge_type: u8 = undefined,
     rom: []u8 = undefined,
 
@@ -9,11 +8,11 @@ pub const Cartridge = struct {
         return self.rom[address];
     }
 
-    pub fn load(self: *@This(), filename: []const u8) !void {
+    pub fn load(self: *@This(), allocator: std.mem.Allocator, filename: []const u8) !void {
         const file = try std.fs.cwd().openFile(filename, .{});
         defer file.close();
 
-        const buffer = try file.readToEndAlloc(self.allocator, std.math.maxInt(usize));
+        const buffer = try file.readToEndAlloc(allocator, std.math.maxInt(usize));
 
         self.rom = buffer;
 
@@ -29,7 +28,7 @@ pub const Cartridge = struct {
         }
     }
 
-    pub fn deinit(self: *Cartridge) void {
-        self.allocator.free(self.rom);
+    pub fn deinit(self: *Cartridge, allocator: std.mem.Allocator) !void {
+        allocator.free(self.rom);
     }
 };

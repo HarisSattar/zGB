@@ -24,11 +24,10 @@ pub const AddressRange = struct {
 };
 
 pub const Memory = struct {
-    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     vram: [0x2000]u8 = .{0} ** 0x2000,
     wram: [0x2000]u8 = .{0} ** 0x2000,
     hram: [0x007F]u8 = .{0} ** 0x007F,
-    cartridge: Cartridge = .{ .allocator = gpa.allocator() },
+    cartridge: Cartridge = .{},
     boot_rom_enabled: bool = true,
 
     pub fn read(self: *const @This(), address: u16) u8 {
@@ -85,5 +84,13 @@ pub const Memory = struct {
 
     fn writeHram(self: *const @This(), address: u16, value: u8) void {
         self.hram[address - 0xFF80] = value;
+    }
+
+    pub fn load(self: *@This(), allocator: std.mem.Allocator, filename: []const u8) !void {
+        try self.cartridge.load(allocator, filename);
+    }
+
+    pub fn deinit(self: *@This(), allocator: std.mem.Allocator) !void {
+        try self.cartridge.deinit(allocator);
     }
 };
