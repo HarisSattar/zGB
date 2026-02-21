@@ -63,7 +63,7 @@ pub const Cpu = struct {
     }
 
     pub fn increment_pc(self: *Cpu) void {
-        self.registers.pc +%= 1;
+        self.registers.pc +%= 0x0001;
     }
 
     pub fn execute(self: *Cpu, opcode: u8, memory: *Memory) void {
@@ -317,7 +317,7 @@ pub const Cpu = struct {
             0xF6 => ops.or_n(self, memory),
             0xF7 => ops.rst_30(self, memory),
             0xF8 => ops.ld_hl_sp_n(self, memory),
-            0xF9 => ops.ld_sp_hl(self, memory),
+            0xF9 => ops.ld_sp_hl(self),
             // 0xFA => ops.ld_a_nn3(self, memory),
             0xFB => ops.ei(self, memory),
             0xFC => {},

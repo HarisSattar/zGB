@@ -3,6 +3,8 @@ const std = @import("std");
 const Cpu = @import("cpu.zig").Cpu;
 const Memory = @import("../memory.zig").Memory;
 
+const IO_BASE: u16 = 0xFF00;
+
 fn read_16bit(cpu: *Cpu, memory: *Memory) u16 {
     const low = memory.read(cpu.registers.pc);
     cpu.increment_pc();
@@ -15,6 +17,13 @@ fn read_8bit(cpu: *Cpu, memory: *Memory) u8 {
     const value = memory.read(cpu.registers.pc);
     cpu.increment_pc();
     return value;
+}
+
+fn reset_flags(cpu: *Cpu) void {
+    cpu.registers.af.bytes.f.c = 0;
+    cpu.registers.af.bytes.f.h = 0;
+    cpu.registers.af.bytes.f.n = 0;
+    cpu.registers.af.bytes.f.z = 0;
 }
 
 // ============================================================================
@@ -354,47 +363,87 @@ pub fn ld_hli_n(cpu: *Cpu, memory: *Memory) void {
 // Load - A from/to memory (LD A,(rr) / LD (rr),A)
 // ============================================================================
 
-pub fn ld_bc_a(_: *Cpu, _: *Memory) void {
+pub fn ld_bc_a(cpu: *Cpu, memory: *Memory) void {
     std.debug.print("RUN OPCODE: {s}\n", .{"LD (BC),A"});
+    memory.write(cpu.registers.bc.pair, cpu.registers.af.bytes.a);
 }
-pub fn ld_a_bc(_: *Cpu, _: *Memory) void {
+pub fn ld_a_bc(cpu: *Cpu, memory: *Memory) void {
     std.debug.print("RUN OPCODE: {s}\n", .{"LD A,(BC)"});
+    cpu.registers.af.bytes.a = memory.read(cpu.registers.bc.pair);
 }
-pub fn ld_de_a(_: *Cpu, _: *Memory) void {
+pub fn ld_de_a(cpu: *Cpu, memory: *Memory) void {
     std.debug.print("RUN OPCODE: {s}\n", .{"LD (DE),A"});
+    memory.write(cpu.registers.de.pair, cpu.registers.af.bytes.a);
 }
-pub fn ld_a_de(_: *Cpu, _: *Memory) void {
+pub fn ld_a_de(cpu: *Cpu, memory: *Memory) void {
     std.debug.print("RUN OPCODE: {s}\n", .{"LD A,(DE)"});
+    cpu.registers.af.bytes.a = memory.read(cpu.registers.de.pair);
 }
-pub fn ldi_hl_a(_: *Cpu, _: *Memory) void {
+pub fn ldi_hl_a(cpu: *Cpu, memory: *Memory) void {
     std.debug.print("RUN OPCODE: {s}\n", .{"LDI (HL),A"});
+    memory.write(cpu.registers.hl.pair, cpu.registers.af.bytes.a);
+    cpu.registers.hl.pair +%= 0x0001;
 }
-pub fn ldi_a_hl(_: *Cpu, _: *Memory) void {
+pub fn ldi_a_hl(cpu: *Cpu, memory: *Memory) void {
     std.debug.print("RUN OPCODE: {s}\n", .{"LDI A,(HL)"});
+    cpu.registers.af.bytes.a = memory.read(cpu.registers.hl.pair);
+    cpu.registers.hl.pair +%= 0x0001;
 }
-pub fn ldd_hl_a(_: *Cpu, _: *Memory) void {
+pub fn ldd_hl_a(cpu: *Cpu, memory: *Memory) void {
     std.debug.print("RUN OPCODE: {s}\n", .{"LDD (HL),A"});
+    memory.write(cpu.registers.hl.pair, cpu.registers.af.bytes.a);
+    cpu.registers.hl.pair -%= 0x0001;
 }
-pub fn ldd_a_hl(_: *Cpu, _: *Memory) void {
+pub fn ldd_a_hl(cpu: *Cpu, memory: *Memory) void {
     std.debug.print("RUN OPCODE: {s}\n", .{"LDD A,(HL)"});
+    cpu.registers.af.bytes.a = memory.read(cpu.registers.hl.pair);
+    cpu.registers.hl.pair -%= 0x0001;
 }
-pub fn ld_nn_sp(_: *Cpu, _: *Memory) void {
+pub fn ld_nn_sp(cpu: *Cpu, memory: *Memory) void {
     std.debug.print("RUN OPCODE: {s}\n", .{"LD (nn),SP"});
+    const address = read_16bit(cpu, memory);
+    const sp_low: u8 = @truncate(cpu.registers.sp);
+    const sp_high: u8 = @truncate(cpu.registers.sp >> 8);
+    memory.write(address, sp_low);
+    memory.write(address + 0x0001, sp_high);
 }
-pub fn ld_nn_a(_: *Cpu, _: *Memory) void {
+pub fn ld_nn_a(cpu: *Cpu, memory: *Memory) void {
     std.debug.print("RUN OPCODE: {s}\n", .{"LD (nn),A"});
+    const address = read_16bit(cpu, memory);
+    memory.write(address, cpu.registers.af.bytes.a);
 }
-pub fn ld_a_nn(_: *Cpu, _: *Memory) void {
+pub fn ld_a_nn(cpu: *Cpu, memory: *Memory) void {
     std.debug.print("RUN OPCODE: {s}\n", .{"LD A,(nn)"});
+    cpu.registers.af.a = memory.read(read_16bit(cpu, memory));
 }
-pub fn ld_a_from_c(_: *Cpu, _: *Memory) void {
+pub fn ld_a_from_c(cpu: *Cpu, memory: *Memory) void {
     std.debug.print("RUN OPCODE: {s}\n", .{"LD A,(C)"});
+    cpu.registers.af.bytes.a = memory.read(IO_BASE + cpu.registers.bc.bytes.c);
 }
-pub fn ld_sp_hl(_: *Cpu, _: *Memory) void {
+pub fn ld_sp_hl(cpu: *Cpu) void {
     std.debug.print("RUN OPCODE: {s}\n", .{"LD SP,HL"});
+    cpu.registers.sp = cpu.registers.hl.pair;
 }
-pub fn ld_hl_sp_n(_: *Cpu, _: *Memory) void {
-    std.debug.print("RUN OPCODE: {s}\n", .{"LD HL,SP+n"});
+pub fn ld_hl_sp_n(cpu: *Cpu, memory: *Memory) void {
+    const sp_low: u8 = @truncate(cpu.registers.sp);
+    const offset_u8 = read_8bit(cpu, memory); // Keep as u8
+    const offset_i8: i8 = @bitCast(offset_u8); // Reinterpret bits as signed
+
+    // Sign-extend to 16 bits for the full addition
+    const offset_i16: i16 = offset_i8;
+    const offset_u16: u16 = @bitCast(offset_i16);
+
+    const result = cpu.registers.sp +% offset_u16;
+
+    // H flag: carry from bit 3 of the lower byte addition
+    const h = ((sp_low & 0x0F) + (offset_u8 & 0x0F)) > 0x0F;
+
+    // C flag: carry from bit 7
+    const c = (@as(u16, sp_low) + @as(u16, offset_u8)) > 0xFF;
+    reset_flags(cpu);
+    if (h) cpu.registers.af.bytes.f.h = 1;
+    if (c) cpu.registers.af.bytes.f.c = 1;
+    cpu.registers.hl.pair = result;
 }
 
 // ============================================================================
