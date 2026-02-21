@@ -3,752 +3,945 @@ const std = @import("std");
 const Cpu = @import("cpu.zig").Cpu;
 const Memory = @import("../memory.zig").Memory;
 
-pub const Opcode = fn (*Cpu, *const Memory) void;
+fn read_16bit(cpu: *Cpu, memory: *Memory) u16 {
+    const low = memory.read(cpu.registers.pc);
+    cpu.increment_pc();
+    const high = memory.read(cpu.registers.pc);
+    cpu.increment_pc();
+    return @as(u16, high) << 8 | @as(u16, low);
+}
 
-pub fn nop(_: *Cpu, _: *const Memory) void {
-    std.debug.print("RUN OPCODE: {s}\n", .{"NOP"});
+fn read_8bit(cpu: *Cpu, memory: *Memory) u8 {
+    const value = memory.read(cpu.registers.pc);
+    cpu.increment_pc();
+    return value;
 }
-pub fn ld_bc_nn(_: *Cpu, _: *const Memory) void {
+
+// ============================================================================
+// Load - Immediate (LD r,n)
+// ============================================================================
+
+pub fn ld_b_n(cpu: *Cpu, memory: *Memory) void {
+    std.debug.print("RUN OPCODE: {s}\n", .{"LD B,n"});
+    cpu.registers.bc.bytes.b = read_8bit(cpu, memory);
+}
+pub fn ld_c_n(cpu: *Cpu, memory: *Memory) void {
+    std.debug.print("RUN OPCODE: {s}\n", .{"LD C,n"});
+    cpu.registers.bc.bytes.c = read_8bit(cpu, memory);
+}
+pub fn ld_d_n(cpu: *Cpu, memory: *Memory) void {
+    std.debug.print("RUN OPCODE: {s}\n", .{"LD D,n"});
+    cpu.registers.de.bytes.d = read_8bit(cpu, memory);
+}
+pub fn ld_e_n(cpu: *Cpu, memory: *Memory) void {
+    std.debug.print("RUN OPCODE: {s}\n", .{"LD E,n"});
+    cpu.registers.de.bytes.e = read_8bit(cpu, memory);
+}
+pub fn ld_h_n(cpu: *Cpu, memory: *Memory) void {
+    std.debug.print("RUN OPCODE: {s}\n", .{"LD H,n"});
+    cpu.registers.hl.bytes.h = read_8bit(cpu, memory);
+}
+pub fn ld_l_n(cpu: *Cpu, memory: *Memory) void {
+    std.debug.print("RUN OPCODE: {s}\n", .{"LD L,n"});
+    cpu.registers.hl.bytes.l = read_8bit(cpu, memory);
+}
+pub fn ld_a_n(cpu: *Cpu, memory: *Memory) void {
+    std.debug.print("RUN OPCODE: {s}\n", .{"LD A,n"});
+    cpu.registers.af.bytes.a = read_8bit(cpu, memory);
+}
+
+// ============================================================================
+// Load - 16-bit (LD rr,nn)
+// ============================================================================
+
+pub fn ld_bc_nn(cpu: *Cpu, memory: *Memory) void {
     std.debug.print("RUN OPCODE: {s}\n", .{"LD BC,nn"});
+    cpu.registers.bc.pair = read_16bit(cpu, memory);
 }
-pub fn ld_bc_a(_: *Cpu, _: *const Memory) void {
+pub fn ld_de_nn(cpu: *Cpu, memory: *Memory) void {
+    std.debug.print("RUN OPCODE: {s}\n", .{"LD DE,nn"});
+    cpu.registers.de.pair = read_16bit(cpu, memory);
+}
+pub fn ld_hl_nn(cpu: *Cpu, memory: *Memory) void {
+    std.debug.print("RUN OPCODE: {s}\n", .{"LD HL,nn"});
+    cpu.registers.hl.pair = read_16bit(cpu, memory);
+}
+pub fn ld_sp_nn(cpu: *Cpu, memory: *Memory) void {
+    std.debug.print("RUN OPCODE: {s}\n", .{"LD SP,nn"});
+    cpu.registers.sp = read_16bit(cpu, memory);
+}
+
+// ============================================================================
+// Load - Register to Register (LD r,r)
+// ============================================================================
+
+// LD B,*
+pub fn ld_b_b(cpu: *Cpu) void {
+    std.debug.print("RUN OPCODE: {s}\n", .{"LD B,B"});
+    cpu.registers.bc.bytes.b = cpu.registers.bc.bytes.b;
+}
+pub fn ld_b_c(cpu: *Cpu) void {
+    std.debug.print("RUN OPCODE: {s}\n", .{"LD B,C"});
+    cpu.registers.bc.bytes.b = cpu.registers.bc.bytes.c;
+}
+pub fn ld_b_d(cpu: *Cpu) void {
+    std.debug.print("RUN OPCODE: {s}\n", .{"LD B,D"});
+    cpu.registers.bc.bytes.b = cpu.registers.de.bytes.d;
+}
+pub fn ld_b_e(cpu: *Cpu) void {
+    std.debug.print("RUN OPCODE: {s}\n", .{"LD B,E"});
+    cpu.registers.bc.bytes.b = cpu.registers.de.bytes.e;
+}
+pub fn ld_b_h(cpu: *Cpu) void {
+    std.debug.print("RUN OPCODE: {s}\n", .{"LD B,H"});
+    cpu.registers.bc.bytes.b = cpu.registers.hl.bytes.h;
+}
+pub fn ld_b_l(cpu: *Cpu) void {
+    std.debug.print("RUN OPCODE: {s}\n", .{"LD B,L"});
+    cpu.registers.bc.bytes.b = cpu.registers.hl.bytes.l;
+}
+pub fn ld_b_hli(cpu: *Cpu, memory: *Memory) void {
+    std.debug.print("RUN OPCODE: {s}\n", .{"LD B,(HL)"});
+    cpu.registers.bc.bytes.b = memory.read(cpu.registers.hl.pair);
+}
+pub fn ld_b_a(cpu: *Cpu) void {
+    std.debug.print("RUN OPCODE: {s}\n", .{"LD B,A"});
+    cpu.registers.bc.bytes.b = cpu.registers.af.bytes.a;
+}
+
+// LD C,*
+pub fn ld_c_b(cpu: *Cpu) void {
+    std.debug.print("RUN OPCODE: {s}\n", .{"LD C,B"});
+    cpu.registers.bc.bytes.c = cpu.registers.bc.bytes.b;
+}
+pub fn ld_c_c(cpu: *Cpu) void {
+    std.debug.print("RUN OPCODE: {s}\n", .{"LD C,C"});
+    cpu.registers.bc.bytes.c = cpu.registers.bc.bytes.c;
+}
+pub fn ld_c_d(cpu: *Cpu) void {
+    std.debug.print("RUN OPCODE: {s}\n", .{"LD C,D"});
+    cpu.registers.bc.bytes.c = cpu.registers.de.bytes.d;
+}
+pub fn ld_c_e(cpu: *Cpu) void {
+    std.debug.print("RUN OPCODE: {s}\n", .{"LD C,E"});
+    cpu.registers.bc.bytes.c = cpu.registers.de.bytes.e;
+}
+pub fn ld_c_h(cpu: *Cpu) void {
+    std.debug.print("RUN OPCODE: {s}\n", .{"LD C,H"});
+    cpu.registers.bc.bytes.c = cpu.registers.hl.bytes.h;
+}
+pub fn ld_c_l(cpu: *Cpu) void {
+    std.debug.print("RUN OPCODE: {s}\n", .{"LD C,L"});
+    cpu.registers.bc.bytes.c = cpu.registers.hl.bytes.l;
+}
+pub fn ld_c_hli(cpu: *Cpu, memory: *Memory) void {
+    std.debug.print("RUN OPCODE: {s}\n", .{"LD C,(HL)"});
+    cpu.registers.bc.bytes.c = memory.read(cpu.registers.hl.pair);
+}
+pub fn ld_c_a(cpu: *Cpu) void {
+    std.debug.print("RUN OPCODE: {s}\n", .{"LD C,A"});
+    cpu.registers.bc.bytes.c = cpu.registers.af.bytes.a;
+}
+
+// LD D,*
+pub fn ld_d_b(cpu: *Cpu) void {
+    std.debug.print("RUN OPCODE: {s}\n", .{"LD D,B"});
+    cpu.registers.de.bytes.d = cpu.registers.bc.bytes.b;
+}
+pub fn ld_d_c(cpu: *Cpu) void {
+    std.debug.print("RUN OPCODE: {s}\n", .{"LD D,C"});
+    cpu.registers.de.bytes.d = cpu.registers.bc.bytes.c;
+}
+pub fn ld_d_d(cpu: *Cpu) void {
+    std.debug.print("RUN OPCODE: {s}\n", .{"LD D,D"});
+    cpu.registers.de.bytes.d = cpu.registers.de.bytes.d;
+}
+pub fn ld_d_e(cpu: *Cpu) void {
+    std.debug.print("RUN OPCODE: {s}\n", .{"LD D,E"});
+    cpu.registers.de.bytes.d = cpu.registers.de.bytes.e;
+}
+pub fn ld_d_h(cpu: *Cpu) void {
+    std.debug.print("RUN OPCODE: {s}\n", .{"LD D,H"});
+    cpu.registers.de.bytes.d = cpu.registers.hl.bytes.h;
+}
+pub fn ld_d_l(cpu: *Cpu) void {
+    std.debug.print("RUN OPCODE: {s}\n", .{"LD D,L"});
+    cpu.registers.de.bytes.d = cpu.registers.hl.bytes.l;
+}
+pub fn ld_d_hli(cpu: *Cpu, memory: *Memory) void {
+    std.debug.print("RUN OPCODE: {s}\n", .{"LD D,(HL)"});
+    cpu.registers.de.bytes.d = memory.read(cpu.registers.hl.pair);
+}
+pub fn ld_d_a(cpu: *Cpu) void {
+    std.debug.print("RUN OPCODE: {s}\n", .{"LD D,A"});
+    cpu.registers.de.bytes.d = cpu.registers.af.bytes.a;
+}
+
+// LD E,*
+pub fn ld_e_b(cpu: *Cpu) void {
+    std.debug.print("RUN OPCODE: {s}\n", .{"LD E,B"});
+    cpu.registers.de.bytes.e = cpu.registers.bc.bytes.b;
+}
+pub fn ld_e_c(cpu: *Cpu) void {
+    std.debug.print("RUN OPCODE: {s}\n", .{"LD E,C"});
+    cpu.registers.de.bytes.e = cpu.registers.de.bytes.e;
+}
+pub fn ld_e_d(cpu: *Cpu) void {
+    std.debug.print("RUN OPCODE: {s}\n", .{"LD E,D"});
+    cpu.registers.de.bytes.e = cpu.registers.de.bytes.d;
+}
+pub fn ld_e_e(cpu: *Cpu) void {
+    std.debug.print("RUN OPCODE: {s}\n", .{"LD E,E"});
+    cpu.registers.de.bytes.e = cpu.registers.de.bytes.e;
+}
+pub fn ld_e_h(cpu: *Cpu) void {
+    std.debug.print("RUN OPCODE: {s}\n", .{"LD E,H"});
+    cpu.registers.de.bytes.e = cpu.registers.hl.bytes.h;
+}
+pub fn ld_e_l(cpu: *Cpu) void {
+    std.debug.print("RUN OPCODE: {s}\n", .{"LD E,L"});
+    cpu.registers.de.bytes.e = cpu.registers.hl.bytes.l;
+}
+pub fn ld_e_hli(cpu: *Cpu, memory: *Memory) void {
+    std.debug.print("RUN OPCODE: {s}\n", .{"LD E,(HL)"});
+    cpu.registers.de.bytes.e = memory.read(cpu.registers.hl.pair);
+}
+pub fn ld_e_a(cpu: *Cpu) void {
+    std.debug.print("RUN OPCODE: {s}\n", .{"LD E,A"});
+    cpu.registers.de.bytes.e = cpu.registers.af.bytes.a;
+}
+
+// LD H,*
+pub fn ld_h_b(cpu: *Cpu) void {
+    std.debug.print("RUN OPCODE: {s}\n", .{"LD H,B"});
+    cpu.registers.hl.bytes.h = cpu.registers.bc.bytes.b;
+}
+pub fn ld_h_c(cpu: *Cpu) void {
+    std.debug.print("RUN OPCODE: {s}\n", .{"LD H,C"});
+    cpu.registers.hl.bytes.h = cpu.registers.bc.bytes.c;
+}
+pub fn ld_h_d(cpu: *Cpu) void {
+    std.debug.print("RUN OPCODE: {s}\n", .{"LD H,D"});
+    cpu.registers.hl.bytes.h = cpu.registers.de.bytes.d;
+}
+pub fn ld_h_e(cpu: *Cpu) void {
+    std.debug.print("RUN OPCODE: {s}\n", .{"LD H,E"});
+    cpu.registers.hl.bytes.h = cpu.registers.de.bytes.e;
+}
+pub fn ld_h_h(cpu: *Cpu) void {
+    std.debug.print("RUN OPCODE: {s}\n", .{"LD H,H"});
+    cpu.registers.hl.bytes.h = cpu.registers.hl.bytes.h;
+}
+pub fn ld_h_l(cpu: *Cpu) void {
+    std.debug.print("RUN OPCODE: {s}\n", .{"LD H,L"});
+    cpu.registers.hl.bytes.h = cpu.registers.hl.bytes.l;
+}
+pub fn ld_h_hli(cpu: *Cpu, memory: *Memory) void {
+    std.debug.print("RUN OPCODE: {s}\n", .{"LD H,(HL)"});
+    cpu.registers.hl.bytes.h = memory.read(cpu.registers.hl.pair);
+}
+pub fn ld_h_a(cpu: *Cpu) void {
+    std.debug.print("RUN OPCODE: {s}\n", .{"LD H,A"});
+    cpu.registers.hl.bytes.h = cpu.registers.af.bytes.a;
+}
+
+// LD L,*
+pub fn ld_l_b(cpu: *Cpu) void {
+    std.debug.print("RUN OPCODE: {s}\n", .{"LD L,B"});
+    cpu.registers.hl.bytes.l = cpu.registers.bc.bytes.b;
+}
+pub fn ld_l_c(cpu: *Cpu) void {
+    std.debug.print("RUN OPCODE: {s}\n", .{"LD L,C"});
+    cpu.registers.hl.bytes.l = cpu.registers.bc.bytes.c;
+}
+pub fn ld_l_d(cpu: *Cpu) void {
+    std.debug.print("RUN OPCODE: {s}\n", .{"LD L,D"});
+    cpu.registers.hl.bytes.l = cpu.registers.de.bytes.d;
+}
+pub fn ld_l_e(cpu: *Cpu) void {
+    std.debug.print("RUN OPCODE: {s}\n", .{"LD L,E"});
+    cpu.registers.hl.bytes.l = cpu.registers.de.bytes.e;
+}
+pub fn ld_l_h(cpu: *Cpu) void {
+    std.debug.print("RUN OPCODE: {s}\n", .{"LD L,H"});
+    cpu.registers.hl.bytes.l = cpu.registers.hl.bytes.h;
+}
+pub fn ld_l_l(cpu: *Cpu) void {
+    std.debug.print("RUN OPCODE: {s}\n", .{"LD L,L"});
+    cpu.registers.hl.bytes.l = cpu.registers.hl.bytes.l;
+}
+pub fn ld_l_hli(cpu: *Cpu, memory: *Memory) void {
+    std.debug.print("RUN OPCODE: {s}\n", .{"LD L,(HL)"});
+    cpu.registers.hl.bytes.l = memory.read(cpu.registers.hl.pair);
+}
+pub fn ld_l_a(cpu: *Cpu) void {
+    std.debug.print("RUN OPCODE: {s}\n", .{"LD L,A"});
+    cpu.registers.hl.bytes.l = cpu.registers.af.bytes.a;
+}
+
+// LD A,*
+pub fn ld_a_b(cpu: *Cpu) void {
+    std.debug.print("RUN OPCODE: {s}\n", .{"LD A,B"});
+    cpu.registers.af.bytes.a = cpu.registers.bc.bytes.b;
+}
+pub fn ld_a_c(cpu: *Cpu) void {
+    std.debug.print("RUN OPCODE: {s}\n", .{"LD A,C"});
+    cpu.registers.af.bytes.a = cpu.registers.bc.bytes.c;
+}
+pub fn ld_a_d(cpu: *Cpu) void {
+    std.debug.print("RUN OPCODE: {s}\n", .{"LD A,D"});
+    cpu.registers.af.bytes.a = cpu.registers.de.bytes.d;
+}
+pub fn ld_a_e(cpu: *Cpu) void {
+    std.debug.print("RUN OPCODE: {s}\n", .{"LD A,E"});
+    cpu.registers.af.bytes.a = cpu.registers.de.bytes.e;
+}
+pub fn ld_a_h(cpu: *Cpu) void {
+    std.debug.print("RUN OPCODE: {s}\n", .{"LD A,H"});
+    cpu.registers.af.bytes.a = cpu.registers.hl.bytes.h;
+}
+pub fn ld_a_l(cpu: *Cpu) void {
+    std.debug.print("RUN OPCODE: {s}\n", .{"LD A,L"});
+    cpu.registers.af.bytes.a = cpu.registers.hl.bytes.l;
+}
+pub fn ld_a_hli(cpu: *Cpu, memory: *Memory) void {
+    std.debug.print("RUN OPCODE: {s}\n", .{"LD A,(HL)"});
+    cpu.registers.af.bytes.a = memory.read(cpu.registers.hl.pair);
+}
+pub fn ld_a_a(cpu: *Cpu) void {
+    std.debug.print("RUN OPCODE: {s}\n", .{"LD A,A"});
+    cpu.registers.af.bytes.a = cpu.registers.af.bytes.a;
+}
+
+// ============================================================================
+// Load - Memory (LD (HL),r and LD r,(HL))
+// ============================================================================
+
+pub fn ld_hli_b(cpu: *Cpu, memory: *Memory) void {
+    std.debug.print("RUN OPCODE: {s}\n", .{"LD (HL),B"});
+    memory.write(cpu.registers.hl.pair, cpu.registers.bc.bytes.b);
+}
+pub fn ld_hli_c(cpu: *Cpu, memory: *Memory) void {
+    std.debug.print("RUN OPCODE: {s}\n", .{"LD (HL),C"});
+    memory.write(cpu.registers.hl.pair, cpu.registers.bc.bytes.c);
+}
+pub fn ld_hli_d(cpu: *Cpu, memory: *Memory) void {
+    std.debug.print("RUN OPCODE: {s}\n", .{"LD (HL),D"});
+    memory.write(cpu.registers.hl.pair, cpu.registers.de.bytes.d);
+}
+pub fn ld_hli_e(cpu: *Cpu, memory: *Memory) void {
+    std.debug.print("RUN OPCODE: {s}\n", .{"LD (HL),E"});
+    memory.write(cpu.registers.hl.pair, cpu.registers.de.bytes.e);
+}
+pub fn ld_hli_h(cpu: *Cpu, memory: *Memory) void {
+    std.debug.print("RUN OPCODE: {s}\n", .{"LD (HL),H"});
+    memory.write(cpu.registers.hl.pair, cpu.registers.hl.bytes.h);
+}
+pub fn ld_hli_l(cpu: *Cpu, memory: *Memory) void {
+    std.debug.print("RUN OPCODE: {s}\n", .{"LD (HL),L"});
+    memory.write(cpu.registers.hl.pair, cpu.registers.hl.bytes.l);
+}
+pub fn ld_hli_a(cpu: *Cpu, memory: *Memory) void {
+    std.debug.print("RUN OPCODE: {s}\n", .{"LD (HL),A"});
+    memory.write(cpu.registers.hl.pair, cpu.registers.af.bytes.a);
+}
+pub fn ld_hli_n(cpu: *Cpu, memory: *Memory) void {
+    std.debug.print("RUN OPCODE: {s}\n", .{"LD (HL),n"});
+    memory.write(cpu.registers.hl.pair, read_8bit(cpu, memory));
+}
+
+// ============================================================================
+// Load - A from/to memory (LD A,(rr) / LD (rr),A)
+// ============================================================================
+
+pub fn ld_bc_a(_: *Cpu, _: *Memory) void {
     std.debug.print("RUN OPCODE: {s}\n", .{"LD (BC),A"});
 }
-pub fn inc_bc(_: *Cpu, _: *const Memory) void {
-    std.debug.print("RUN OPCODE: {s}\n", .{"INC BC"});
-}
-pub fn inc_b(_: *Cpu, _: *const Memory) void {
-    std.debug.print("RUN OPCODE: {s}\n", .{"INC B"});
-}
-pub fn dec_b(_: *Cpu, _: *const Memory) void {
-    std.debug.print("RUN OPCODE: {s}\n", .{"DEC B"});
-}
-pub fn ld_b_n(_: *Cpu, _: *const Memory) void {
-    std.debug.print("RUN OPCODE: {s}\n", .{"LD B,n"});
-}
-pub fn rlca(_: *Cpu, _: *const Memory) void {
-    std.debug.print("RUN OPCODE: {s}\n", .{"RLCA"});
-}
-pub fn ld_nn_sp(_: *Cpu, _: *const Memory) void {
-    std.debug.print("RUN OPCODE: {s}\n", .{"LD (nn),SP"});
-}
-pub fn add_hl_bc(_: *Cpu, _: *const Memory) void {
-    std.debug.print("RUN OPCODE: {s}\n", .{"ADD HL,BC"});
-}
-pub fn ld_a_bc(_: *Cpu, _: *const Memory) void {
+pub fn ld_a_bc(_: *Cpu, _: *Memory) void {
     std.debug.print("RUN OPCODE: {s}\n", .{"LD A,(BC)"});
 }
-pub fn dec_bc(_: *Cpu, _: *const Memory) void {
-    std.debug.print("RUN OPCODE: {s}\n", .{"DEC BC"});
-}
-pub fn inc_c(_: *Cpu, _: *const Memory) void {
-    std.debug.print("RUN OPCODE: {s}\n", .{"INC C"});
-}
-pub fn dec_c(_: *Cpu, _: *const Memory) void {
-    std.debug.print("RUN OPCODE: {s}\n", .{"DEC C"});
-}
-pub fn ld_c_n(_: *Cpu, _: *const Memory) void {
-    std.debug.print("RUN OPCODE: {s}\n", .{"LD C,n"});
-}
-pub fn rrca(_: *Cpu, _: *const Memory) void {
-    std.debug.print("RUN OPCODE: {s}\n", .{"RRCA"});
-}
-pub fn stop(_: *Cpu, _: *const Memory) void {
-    std.debug.print("RUN OPCODE: {s}\n", .{"STOP"});
-}
-pub fn ld_de_nn(_: *Cpu, _: *const Memory) void {
-    std.debug.print("RUN OPCODE: {s}\n", .{"LD DE,nn"});
-}
-pub fn ld_de_a(_: *Cpu, _: *const Memory) void {
+pub fn ld_de_a(_: *Cpu, _: *Memory) void {
     std.debug.print("RUN OPCODE: {s}\n", .{"LD (DE),A"});
 }
-pub fn inc_de(_: *Cpu, _: *const Memory) void {
-    std.debug.print("RUN OPCODE: {s}\n", .{"INC DE"});
-}
-pub fn inc_d(_: *Cpu, _: *const Memory) void {
-    std.debug.print("RUN OPCODE: {s}\n", .{"INC D"});
-}
-pub fn dec_d(_: *Cpu, _: *const Memory) void {
-    std.debug.print("RUN OPCODE: {s}\n", .{"DEC D"});
-}
-pub fn ld_d_n(_: *Cpu, _: *const Memory) void {
-    std.debug.print("RUN OPCODE: {s}\n", .{"LD D,n"});
-}
-pub fn rla(_: *Cpu, _: *const Memory) void {
-    std.debug.print("RUN OPCODE: {s}\n", .{"RLA"});
-}
-pub fn jr_n(_: *Cpu, _: *const Memory) void {
-    std.debug.print("RUN OPCODE: {s}\n", .{"JR n"});
-}
-pub fn add_hl_de(_: *Cpu, _: *const Memory) void {
-    std.debug.print("RUN OPCODE: {s}\n", .{"ADD HL,DE"});
-}
-pub fn ld_a_de(_: *Cpu, _: *const Memory) void {
+pub fn ld_a_de(_: *Cpu, _: *Memory) void {
     std.debug.print("RUN OPCODE: {s}\n", .{"LD A,(DE)"});
 }
-pub fn dec_de(_: *Cpu, _: *const Memory) void {
-    std.debug.print("RUN OPCODE: {s}\n", .{"DEC DE"});
-}
-pub fn inc_e(_: *Cpu, _: *const Memory) void {
-    std.debug.print("RUN OPCODE: {s}\n", .{"INC E"});
-}
-pub fn dec_e(_: *Cpu, _: *const Memory) void {
-    std.debug.print("RUN OPCODE: {s}\n", .{"DEC E"});
-}
-pub fn ld_e_n(_: *Cpu, _: *const Memory) void {
-    std.debug.print("RUN OPCODE: {s}\n", .{"LD E,n"});
-}
-pub fn rra(_: *Cpu, _: *const Memory) void {
-    std.debug.print("RUN OPCODE: {s}\n", .{"RRA"});
-}
-pub fn jr_nz_n(_: *Cpu, _: *const Memory) void {
-    std.debug.print("RUN OPCODE: {s}\n", .{"JR NZ,n"});
-}
-pub fn ld_hl_nn(_: *Cpu, _: *const Memory) void {
-    std.debug.print("RUN OPCODE: {s}\n", .{"LD HL,nn"});
-}
-pub fn ldi_hl_a(_: *Cpu, _: *const Memory) void {
+pub fn ldi_hl_a(_: *Cpu, _: *Memory) void {
     std.debug.print("RUN OPCODE: {s}\n", .{"LDI (HL),A"});
 }
-pub fn inc_hl(_: *Cpu, _: *const Memory) void {
-    std.debug.print("RUN OPCODE: {s}\n", .{"INC HL"});
-}
-pub fn inc_h(_: *Cpu, _: *const Memory) void {
-    std.debug.print("RUN OPCODE: {s}\n", .{"INC H"});
-}
-pub fn dec_h(_: *Cpu, _: *const Memory) void {
-    std.debug.print("RUN OPCODE: {s}\n", .{"DEC H"});
-}
-pub fn ld_h_n(_: *Cpu, _: *const Memory) void {
-    std.debug.print("RUN OPCODE: {s}\n", .{"LD H,n"});
-}
-pub fn daa(_: *Cpu, _: *const Memory) void {
-    std.debug.print("RUN OPCODE: {s}\n", .{"DAA"});
-}
-pub fn jr_z_n(_: *Cpu, _: *const Memory) void {
-    std.debug.print("RUN OPCODE: {s}\n", .{"JR Z,n"});
-}
-pub fn add_hl_hl(_: *Cpu, _: *const Memory) void {
-    std.debug.print("RUN OPCODE: {s}\n", .{"ADD HL,HL"});
-}
-pub fn ldi_a_hl(_: *Cpu, _: *const Memory) void {
+pub fn ldi_a_hl(_: *Cpu, _: *Memory) void {
     std.debug.print("RUN OPCODE: {s}\n", .{"LDI A,(HL)"});
 }
-pub fn dec_hl(_: *Cpu, _: *const Memory) void {
-    std.debug.print("RUN OPCODE: {s}\n", .{"DEC HL"});
-}
-pub fn inc_l(_: *Cpu, _: *const Memory) void {
-    std.debug.print("RUN OPCODE: {s}\n", .{"INC L"});
-}
-pub fn dec_l(_: *Cpu, _: *const Memory) void {
-    std.debug.print("RUN OPCODE: {s}\n", .{"DEC L"});
-}
-pub fn ld_l_n(_: *Cpu, _: *const Memory) void {
-    std.debug.print("RUN OPCODE: {s}\n", .{"LD L,n"});
-}
-pub fn cpl(_: *Cpu, _: *const Memory) void {
-    std.debug.print("RUN OPCODE: {s}\n", .{"CPL"});
-}
-pub fn jr_nc_n(_: *Cpu, _: *const Memory) void {
-    std.debug.print("RUN OPCODE: {s}\n", .{"JR NC,n"});
-}
-pub fn ld_sp_nn(_: *Cpu, _: *const Memory) void {
-    std.debug.print("RUN OPCODE: {s}\n", .{"LD SP,nn"});
-}
-pub fn ldd_hl_a(_: *Cpu, _: *const Memory) void {
+pub fn ldd_hl_a(_: *Cpu, _: *Memory) void {
     std.debug.print("RUN OPCODE: {s}\n", .{"LDD (HL),A"});
 }
-pub fn inc_sp(_: *Cpu, _: *const Memory) void {
-    std.debug.print("RUN OPCODE: {s}\n", .{"INC SP"});
-}
-pub fn inc_hli(_: *Cpu, _: *const Memory) void {
-    std.debug.print("RUN OPCODE: {s}\n", .{"INC (HL)"});
-}
-pub fn dec_hli(_: *Cpu, _: *const Memory) void {
-    std.debug.print("RUN OPCODE: {s}\n", .{"DEC (HL)"});
-}
-pub fn ld_hli_n(_: *Cpu, _: *const Memory) void {
-    std.debug.print("RUN OPCODE: {s}\n", .{"LD (HL),n"});
-}
-pub fn scf(_: *Cpu, _: *const Memory) void {
-    std.debug.print("RUN OPCODE: {s}\n", .{"SCF"});
-}
-pub fn jr_c_n(_: *Cpu, _: *const Memory) void {
-    std.debug.print("RUN OPCODE: {s}\n", .{"JR C,n"});
-}
-pub fn add_hl_sp(_: *Cpu, _: *const Memory) void {
-    std.debug.print("RUN OPCODE: {s}\n", .{"ADD HL,SP"});
-}
-pub fn ldd_a_hl(_: *Cpu, _: *const Memory) void {
+pub fn ldd_a_hl(_: *Cpu, _: *Memory) void {
     std.debug.print("RUN OPCODE: {s}\n", .{"LDD A,(HL)"});
 }
-pub fn dec_sp(_: *Cpu, _: *const Memory) void {
-    std.debug.print("RUN OPCODE: {s}\n", .{"DEC SP"});
+pub fn ld_nn_sp(_: *Cpu, _: *Memory) void {
+    std.debug.print("RUN OPCODE: {s}\n", .{"LD (nn),SP"});
 }
-pub fn inc_a(_: *Cpu, _: *const Memory) void {
-    std.debug.print("RUN OPCODE: {s}\n", .{"INC A"});
-}
-pub fn dec_a(_: *Cpu, _: *const Memory) void {
-    std.debug.print("RUN OPCODE: {s}\n", .{"DEC A"});
-}
-pub fn ld_a_n(_: *Cpu, _: *const Memory) void {
-    std.debug.print("RUN OPCODE: {s}\n", .{"LD A,n"});
-}
-pub fn ccf(_: *Cpu, _: *const Memory) void {
-    std.debug.print("RUN OPCODE: {s}\n", .{"CCF"});
-}
-pub fn ld_b_b(_: *Cpu, _: *const Memory) void {
-    std.debug.print("RUN OPCODE: {s}\n", .{"LD B,B"});
-}
-pub fn ld_b_c(_: *Cpu, _: *const Memory) void {
-    std.debug.print("RUN OPCODE: {s}\n", .{"LD B,C"});
-}
-pub fn ld_b_d(_: *Cpu, _: *const Memory) void {
-    std.debug.print("RUN OPCODE: {s}\n", .{"LD B,D"});
-}
-pub fn ld_b_e(_: *Cpu, _: *const Memory) void {
-    std.debug.print("RUN OPCODE: {s}\n", .{"LD B,E"});
-}
-pub fn ld_b_h(_: *Cpu, _: *const Memory) void {
-    std.debug.print("RUN OPCODE: {s}\n", .{"LD B,H"});
-}
-pub fn ld_b_l(_: *Cpu, _: *const Memory) void {
-    std.debug.print("RUN OPCODE: {s}\n", .{"LD B,L"});
-}
-pub fn ld_b_hli(_: *Cpu, _: *const Memory) void {
-    std.debug.print("RUN OPCODE: {s}\n", .{"LD B,(HL)"});
-}
-pub fn ld_b_a(_: *Cpu, _: *const Memory) void {
-    std.debug.print("RUN OPCODE: {s}\n", .{"LD B,A"});
-}
-pub fn ld_c_b(_: *Cpu, _: *const Memory) void {
-    std.debug.print("RUN OPCODE: {s}\n", .{"LD C,B"});
-}
-pub fn ld_c_c(_: *Cpu, _: *const Memory) void {
-    std.debug.print("RUN OPCODE: {s}\n", .{"LD C,C"});
-}
-pub fn ld_c_d(_: *Cpu, _: *const Memory) void {
-    std.debug.print("RUN OPCODE: {s}\n", .{"LD C,D"});
-}
-pub fn ld_c_e(_: *Cpu, _: *const Memory) void {
-    std.debug.print("RUN OPCODE: {s}\n", .{"LD C,E"});
-}
-pub fn ld_c_h(_: *Cpu, _: *const Memory) void {
-    std.debug.print("RUN OPCODE: {s}\n", .{"LD C,H"});
-}
-pub fn ld_c_l(_: *Cpu, _: *const Memory) void {
-    std.debug.print("RUN OPCODE: {s}\n", .{"LD C,L"});
-}
-pub fn ld_c_hli(_: *Cpu, _: *const Memory) void {
-    std.debug.print("RUN OPCODE: {s}\n", .{"LD C,(HL)"});
-}
-pub fn ld_c_a(_: *Cpu, _: *const Memory) void {
-    std.debug.print("RUN OPCODE: {s}\n", .{"LD C,A"});
-}
-pub fn ld_d_b(_: *Cpu, _: *const Memory) void {
-    std.debug.print("RUN OPCODE: {s}\n", .{"LD D,B"});
-}
-pub fn ld_d_c(_: *Cpu, _: *const Memory) void {
-    std.debug.print("RUN OPCODE: {s}\n", .{"LD D,C"});
-}
-pub fn ld_d_d(_: *Cpu, _: *const Memory) void {
-    std.debug.print("RUN OPCODE: {s}\n", .{"LD D,D"});
-}
-pub fn ld_d_e(_: *Cpu, _: *const Memory) void {
-    std.debug.print("RUN OPCODE: {s}\n", .{"LD D,E"});
-}
-pub fn ld_d_h(_: *Cpu, _: *const Memory) void {
-    std.debug.print("RUN OPCODE: {s}\n", .{"LD D,H"});
-}
-pub fn ld_d_l(_: *Cpu, _: *const Memory) void {
-    std.debug.print("RUN OPCODE: {s}\n", .{"LD D,L"});
-}
-pub fn ld_d_hli(_: *Cpu, _: *const Memory) void {
-    std.debug.print("RUN OPCODE: {s}\n", .{"LD D,(HL)"});
-}
-pub fn ld_d_a(_: *Cpu, _: *const Memory) void {
-    std.debug.print("RUN OPCODE: {s}\n", .{"LD D,A"});
-}
-pub fn ld_e_b(_: *Cpu, _: *const Memory) void {
-    std.debug.print("RUN OPCODE: {s}\n", .{"LD E,B"});
-}
-pub fn ld_e_c(_: *Cpu, _: *const Memory) void {
-    std.debug.print("RUN OPCODE: {s}\n", .{"LD E,C"});
-}
-pub fn ld_e_d(_: *Cpu, _: *const Memory) void {
-    std.debug.print("RUN OPCODE: {s}\n", .{"LD E,D"});
-}
-pub fn ld_e_e(_: *Cpu, _: *const Memory) void {
-    std.debug.print("RUN OPCODE: {s}\n", .{"LD E,E"});
-}
-pub fn ld_e_h(_: *Cpu, _: *const Memory) void {
-    std.debug.print("RUN OPCODE: {s}\n", .{"LD E,H"});
-}
-pub fn ld_e_l(_: *Cpu, _: *const Memory) void {
-    std.debug.print("RUN OPCODE: {s}\n", .{"LD E,L"});
-}
-pub fn ld_e_hli(_: *Cpu, _: *const Memory) void {
-    std.debug.print("RUN OPCODE: {s}\n", .{"LD E,(HL)"});
-}
-pub fn ld_e_a(_: *Cpu, _: *const Memory) void {
-    std.debug.print("RUN OPCODE: {s}\n", .{"LD E,A"});
-}
-pub fn ld_h_b(_: *Cpu, _: *const Memory) void {
-    std.debug.print("RUN OPCODE: {s}\n", .{"LD H,B"});
-}
-pub fn ld_h_c(_: *Cpu, _: *const Memory) void {
-    std.debug.print("RUN OPCODE: {s}\n", .{"LD H,C"});
-}
-pub fn ld_h_d(_: *Cpu, _: *const Memory) void {
-    std.debug.print("RUN OPCODE: {s}\n", .{"LD H,D"});
-}
-pub fn ld_h_e(_: *Cpu, _: *const Memory) void {
-    std.debug.print("RUN OPCODE: {s}\n", .{"LD H,E"});
-}
-pub fn ld_h_h(_: *Cpu, _: *const Memory) void {
-    std.debug.print("RUN OPCODE: {s}\n", .{"LD H,H"});
-}
-pub fn ld_h_l(_: *Cpu, _: *const Memory) void {
-    std.debug.print("RUN OPCODE: {s}\n", .{"LD H,L"});
-}
-pub fn ld_h_hli(_: *Cpu, _: *const Memory) void {
-    std.debug.print("RUN OPCODE: {s}\n", .{"LD H,(HL)"});
-}
-pub fn ld_h_a(_: *Cpu, _: *const Memory) void {
-    std.debug.print("RUN OPCODE: {s}\n", .{"LD H,A"});
-}
-pub fn ld_l_b(_: *Cpu, _: *const Memory) void {
-    std.debug.print("RUN OPCODE: {s}\n", .{"LD L,B"});
-}
-pub fn ld_l_c(_: *Cpu, _: *const Memory) void {
-    std.debug.print("RUN OPCODE: {s}\n", .{"LD L,C"});
-}
-pub fn ld_l_d(_: *Cpu, _: *const Memory) void {
-    std.debug.print("RUN OPCODE: {s}\n", .{"LD L,D"});
-}
-pub fn ld_l_e(_: *Cpu, _: *const Memory) void {
-    std.debug.print("RUN OPCODE: {s}\n", .{"LD L,E"});
-}
-pub fn ld_l_h(_: *Cpu, _: *const Memory) void {
-    std.debug.print("RUN OPCODE: {s}\n", .{"LD L,H"});
-}
-pub fn ld_l_l(_: *Cpu, _: *const Memory) void {
-    std.debug.print("RUN OPCODE: {s}\n", .{"LD L,L"});
-}
-pub fn ld_l_hli(_: *Cpu, _: *const Memory) void {
-    std.debug.print("RUN OPCODE: {s}\n", .{"LD L,(HL)"});
-}
-pub fn ld_l_a(_: *Cpu, _: *const Memory) void {
-    std.debug.print("RUN OPCODE: {s}\n", .{"LD L,A"});
-}
-pub fn ld_hli_b(_: *Cpu, _: *const Memory) void {
-    std.debug.print("RUN OPCODE: {s}\n", .{"LD (HL),B"});
-}
-pub fn ld_hli_c(_: *Cpu, _: *const Memory) void {
-    std.debug.print("RUN OPCODE: {s}\n", .{"LD (HL),C"});
-}
-pub fn ld_hli_d(_: *Cpu, _: *const Memory) void {
-    std.debug.print("RUN OPCODE: {s}\n", .{"LD (HL),D"});
-}
-pub fn ld_hli_e(_: *Cpu, _: *const Memory) void {
-    std.debug.print("RUN OPCODE: {s}\n", .{"LD (HL),E"});
-}
-pub fn ld_hli_h(_: *Cpu, _: *const Memory) void {
-    std.debug.print("RUN OPCODE: {s}\n", .{"LD (HL),H"});
-}
-pub fn ld_hli_l(_: *Cpu, _: *const Memory) void {
-    std.debug.print("RUN OPCODE: {s}\n", .{"LD (HL),L"});
-}
-pub fn halt(_: *Cpu, _: *const Memory) void {
-    std.debug.print("RUN OPCODE: {s}\n", .{"HALT"});
-}
-pub fn ld_hli_a(_: *Cpu, _: *const Memory) void {
-    std.debug.print("RUN OPCODE: {s}\n", .{"LD (HL),A"});
-}
-pub fn ld_a_b(_: *Cpu, _: *const Memory) void {
-    std.debug.print("RUN OPCODE: {s}\n", .{"LD A,B"});
-}
-pub fn ld_a_c(_: *Cpu, _: *const Memory) void {
-    std.debug.print("RUN OPCODE: {s}\n", .{"LD A,C"});
-}
-pub fn ld_a_d(_: *Cpu, _: *const Memory) void {
-    std.debug.print("RUN OPCODE: {s}\n", .{"LD A,D"});
-}
-pub fn ld_a_e(_: *Cpu, _: *const Memory) void {
-    std.debug.print("RUN OPCODE: {s}\n", .{"LD A,E"});
-}
-pub fn ld_a_h(_: *Cpu, _: *const Memory) void {
-    std.debug.print("RUN OPCODE: {s}\n", .{"LD A,H"});
-}
-pub fn ld_a_l(_: *Cpu, _: *const Memory) void {
-    std.debug.print("RUN OPCODE: {s}\n", .{"LD A,L"});
-}
-pub fn ld_a_hli(_: *Cpu, _: *const Memory) void {
-    std.debug.print("RUN OPCODE: {s}\n", .{"LD A,(HL)"});
-}
-pub fn ld_a_a(_: *Cpu, _: *const Memory) void {
-    std.debug.print("RUN OPCODE: {s}\n", .{"LD A,A"});
-}
-pub fn add_a_b(_: *Cpu, _: *const Memory) void {
-    std.debug.print("RUN OPCODE: {s}\n", .{"ADD A,B"});
-}
-pub fn add_a_c(_: *Cpu, _: *const Memory) void {
-    std.debug.print("RUN OPCODE: {s}\n", .{"ADD A,C"});
-}
-pub fn add_a_d(_: *Cpu, _: *const Memory) void {
-    std.debug.print("RUN OPCODE: {s}\n", .{"ADD A,D"});
-}
-pub fn add_a_e(_: *Cpu, _: *const Memory) void {
-    std.debug.print("RUN OPCODE: {s}\n", .{"ADD A,E"});
-}
-pub fn add_a_h(_: *Cpu, _: *const Memory) void {
-    std.debug.print("RUN OPCODE: {s}\n", .{"ADD A,H"});
-}
-pub fn add_a_l(_: *Cpu, _: *const Memory) void {
-    std.debug.print("RUN OPCODE: {s}\n", .{"ADD A,L"});
-}
-pub fn add_a_hli(_: *Cpu, _: *const Memory) void {
-    std.debug.print("RUN OPCODE: {s}\n", .{"ADD A,(HL)"});
-}
-pub fn add_a_a(_: *Cpu, _: *const Memory) void {
-    std.debug.print("RUN OPCODE: {s}\n", .{"ADD A,A"});
-}
-pub fn adc_a_b(_: *Cpu, _: *const Memory) void {
-    std.debug.print("RUN OPCODE: {s}\n", .{"ADC A,B"});
-}
-pub fn adc_a_c(_: *Cpu, _: *const Memory) void {
-    std.debug.print("RUN OPCODE: {s}\n", .{"ADC A,C"});
-}
-pub fn adc_a_d(_: *Cpu, _: *const Memory) void {
-    std.debug.print("RUN OPCODE: {s}\n", .{"ADC A,D"});
-}
-pub fn adc_a_e(_: *Cpu, _: *const Memory) void {
-    std.debug.print("RUN OPCODE: {s}\n", .{"ADC A,E"});
-}
-pub fn adc_a_h(_: *Cpu, _: *const Memory) void {
-    std.debug.print("RUN OPCODE: {s}\n", .{"ADC A,H"});
-}
-pub fn adc_a_l(_: *Cpu, _: *const Memory) void {
-    std.debug.print("RUN OPCODE: {s}\n", .{"ADC A,L"});
-}
-pub fn adc_a_hli(_: *Cpu, _: *const Memory) void {
-    std.debug.print("RUN OPCODE: {s}\n", .{"ADC A,(HL)"});
-}
-pub fn adc_a_a(_: *Cpu, _: *const Memory) void {
-    std.debug.print("RUN OPCODE: {s}\n", .{"ADC A,A"});
-}
-pub fn sub_b(_: *Cpu, _: *const Memory) void {
-    std.debug.print("RUN OPCODE: {s}\n", .{"SUB B"});
-}
-pub fn sub_c(_: *Cpu, _: *const Memory) void {
-    std.debug.print("RUN OPCODE: {s}\n", .{"SUB C"});
-}
-pub fn sub_d(_: *Cpu, _: *const Memory) void {
-    std.debug.print("RUN OPCODE: {s}\n", .{"SUB D"});
-}
-pub fn sub_e(_: *Cpu, _: *const Memory) void {
-    std.debug.print("RUN OPCODE: {s}\n", .{"SUB E"});
-}
-pub fn sub_h(_: *Cpu, _: *const Memory) void {
-    std.debug.print("RUN OPCODE: {s}\n", .{"SUB H"});
-}
-pub fn sub_l(_: *Cpu, _: *const Memory) void {
-    std.debug.print("RUN OPCODE: {s}\n", .{"SUB L"});
-}
-pub fn sub_hli(_: *Cpu, _: *const Memory) void {
-    std.debug.print("RUN OPCODE: {s}\n", .{"SUB (HL)"});
-}
-pub fn sub_a(_: *Cpu, _: *const Memory) void {
-    std.debug.print("RUN OPCODE: {s}\n", .{"SUB A"});
-}
-pub fn sbc_a_b(_: *Cpu, _: *const Memory) void {
-    std.debug.print("RUN OPCODE: {s}\n", .{"SBC A,B"});
-}
-pub fn sbc_a_c(_: *Cpu, _: *const Memory) void {
-    std.debug.print("RUN OPCODE: {s}\n", .{"SBC A,C"});
-}
-pub fn sbc_a_d(_: *Cpu, _: *const Memory) void {
-    std.debug.print("RUN OPCODE: {s}\n", .{"SBC A,D"});
-}
-pub fn sbc_a_e(_: *Cpu, _: *const Memory) void {
-    std.debug.print("RUN OPCODE: {s}\n", .{"SBC A,E"});
-}
-pub fn sbc_a_h(_: *Cpu, _: *const Memory) void {
-    std.debug.print("RUN OPCODE: {s}\n", .{"SBC A,H"});
-}
-pub fn sbc_a_l(_: *Cpu, _: *const Memory) void {
-    std.debug.print("RUN OPCODE: {s}\n", .{"SBC A,L"});
-}
-pub fn sbc_a_hli(_: *Cpu, _: *const Memory) void {
-    std.debug.print("RUN OPCODE: {s}\n", .{"SBC A,(HL)"});
-}
-pub fn sbc_a_a(_: *Cpu, _: *const Memory) void {
-    std.debug.print("RUN OPCODE: {s}\n", .{"SBC A,A"});
-}
-pub fn and_b(_: *Cpu, _: *const Memory) void {
-    std.debug.print("RUN OPCODE: {s}\n", .{"AND B"});
-}
-pub fn and_c(_: *Cpu, _: *const Memory) void {
-    std.debug.print("RUN OPCODE: {s}\n", .{"AND C"});
-}
-pub fn and_d(_: *Cpu, _: *const Memory) void {
-    std.debug.print("RUN OPCODE: {s}\n", .{"AND D"});
-}
-pub fn and_e(_: *Cpu, _: *const Memory) void {
-    std.debug.print("RUN OPCODE: {s}\n", .{"AND E"});
-}
-pub fn and_h(_: *Cpu, _: *const Memory) void {
-    std.debug.print("RUN OPCODE: {s}\n", .{"AND H"});
-}
-pub fn and_l(_: *Cpu, _: *const Memory) void {
-    std.debug.print("RUN OPCODE: {s}\n", .{"AND L"});
-}
-pub fn and_hli(_: *Cpu, _: *const Memory) void {
-    std.debug.print("RUN OPCODE: {s}\n", .{"AND (HL)"});
-}
-pub fn and_a(_: *Cpu, _: *const Memory) void {
-    std.debug.print("RUN OPCODE: {s}\n", .{"AND A"});
-}
-pub fn xor_b(_: *Cpu, _: *const Memory) void {
-    std.debug.print("RUN OPCODE: {s}\n", .{"XOR B"});
-}
-pub fn xor_c(_: *Cpu, _: *const Memory) void {
-    std.debug.print("RUN OPCODE: {s}\n", .{"XOR C"});
-}
-pub fn xor_d(_: *Cpu, _: *const Memory) void {
-    std.debug.print("RUN OPCODE: {s}\n", .{"XOR D"});
-}
-pub fn xor_e(_: *Cpu, _: *const Memory) void {
-    std.debug.print("RUN OPCODE: {s}\n", .{"XOR E"});
-}
-pub fn xor_h(_: *Cpu, _: *const Memory) void {
-    std.debug.print("RUN OPCODE: {s}\n", .{"XOR H"});
-}
-pub fn xor_l(_: *Cpu, _: *const Memory) void {
-    std.debug.print("RUN OPCODE: {s}\n", .{"XOR L"});
-}
-pub fn xor_hli(_: *Cpu, _: *const Memory) void {
-    std.debug.print("RUN OPCODE: {s}\n", .{"XOR (HL)"});
-}
-pub fn xor_a(_: *Cpu, _: *const Memory) void {
-    std.debug.print("RUN OPCODE: {s}\n", .{"XOR A"});
-}
-pub fn or_b(_: *Cpu, _: *const Memory) void {
-    std.debug.print("RUN OPCODE: {s}\n", .{"OR B"});
-}
-pub fn or_c(_: *Cpu, _: *const Memory) void {
-    std.debug.print("RUN OPCODE: {s}\n", .{"OR C"});
-}
-pub fn or_d(_: *Cpu, _: *const Memory) void {
-    std.debug.print("RUN OPCODE: {s}\n", .{"OR D"});
-}
-pub fn or_e(_: *Cpu, _: *const Memory) void {
-    std.debug.print("RUN OPCODE: {s}\n", .{"OR E"});
-}
-pub fn or_h(_: *Cpu, _: *const Memory) void {
-    std.debug.print("RUN OPCODE: {s}\n", .{"OR H"});
-}
-pub fn or_l(_: *Cpu, _: *const Memory) void {
-    std.debug.print("RUN OPCODE: {s}\n", .{"OR L"});
-}
-pub fn or_hli(_: *Cpu, _: *const Memory) void {
-    std.debug.print("RUN OPCODE: {s}\n", .{"OR (HL)"});
-}
-pub fn or_a(_: *Cpu, _: *const Memory) void {
-    std.debug.print("RUN OPCODE: {s}\n", .{"OR A"});
-}
-pub fn cp_b(_: *Cpu, _: *const Memory) void {
-    std.debug.print("RUN OPCODE: {s}\n", .{"CP B"});
-}
-pub fn cp_c(_: *Cpu, _: *const Memory) void {
-    std.debug.print("RUN OPCODE: {s}\n", .{"CP C"});
-}
-pub fn cp_d(_: *Cpu, _: *const Memory) void {
-    std.debug.print("RUN OPCODE: {s}\n", .{"CP D"});
-}
-pub fn cp_e(_: *Cpu, _: *const Memory) void {
-    std.debug.print("RUN OPCODE: {s}\n", .{"CP E"});
-}
-pub fn cp_h(_: *Cpu, _: *const Memory) void {
-    std.debug.print("RUN OPCODE: {s}\n", .{"CP H"});
-}
-pub fn cp_l(_: *Cpu, _: *const Memory) void {
-    std.debug.print("RUN OPCODE: {s}\n", .{"CP L"});
-}
-pub fn cp_hli(_: *Cpu, _: *const Memory) void {
-    std.debug.print("RUN OPCODE: {s}\n", .{"CP (HL)"});
-}
-pub fn cp_a(_: *Cpu, _: *const Memory) void {
-    std.debug.print("RUN OPCODE: {s}\n", .{"CP A"});
-}
-pub fn ret_nz(_: *Cpu, _: *const Memory) void {
-    std.debug.print("RUN OPCODE: {s}\n", .{"RET NZ"});
-}
-pub fn pop_bc(_: *Cpu, _: *const Memory) void {
-    std.debug.print("RUN OPCODE: {s}\n", .{"POP BC"});
-}
-pub fn jp_nz_nn(_: *Cpu, _: *const Memory) void {
-    std.debug.print("RUN OPCODE: {s}\n", .{"JP NZ,nn"});
-}
-pub fn jp_nn(_: *Cpu, _: *const Memory) void {
-    std.debug.print("RUN OPCODE: {s}\n", .{"JP nn"});
-}
-pub fn call_nz_nn(_: *Cpu, _: *const Memory) void {
-    std.debug.print("RUN OPCODE: {s}\n", .{"CALL NZ,nn"});
-}
-pub fn push_bc(_: *Cpu, _: *const Memory) void {
-    std.debug.print("RUN OPCODE: {s}\n", .{"PUSH BC"});
-}
-pub fn add_a_n(_: *Cpu, _: *const Memory) void {
-    std.debug.print("RUN OPCODE: {s}\n", .{"ADD A,n"});
-}
-pub fn rst_00(_: *Cpu, _: *const Memory) void {
-    std.debug.print("RUN OPCODE: {s}\n", .{"RST 00"});
-}
-pub fn ret_z(_: *Cpu, _: *const Memory) void {
-    std.debug.print("RUN OPCODE: {s}\n", .{"RET Z"});
-}
-pub fn ret(_: *Cpu, _: *const Memory) void {
-    std.debug.print("RUN OPCODE: {s}\n", .{"RET"});
-}
-pub fn jp_z_nn(_: *Cpu, _: *const Memory) void {
-    std.debug.print("RUN OPCODE: {s}\n", .{"JP Z,nn"});
-}
-pub fn call_z_nn(_: *Cpu, _: *const Memory) void {
-    std.debug.print("RUN OPCODE: {s}\n", .{"CALL Z,nn"});
-}
-pub fn call_nn(_: *Cpu, _: *const Memory) void {
-    std.debug.print("RUN OPCODE: {s}\n", .{"CALL nn"});
-}
-pub fn adc_a_n(_: *Cpu, _: *const Memory) void {
-    std.debug.print("RUN OPCODE: {s}\n", .{"ADC A,n"});
-}
-pub fn rst_08(_: *Cpu, _: *const Memory) void {
-    std.debug.print("RUN OPCODE: {s}\n", .{"RST 08"});
-}
-pub fn ret_nc(_: *Cpu, _: *const Memory) void {
-    std.debug.print("RUN OPCODE: {s}\n", .{"RET NC"});
-}
-pub fn pop_de(_: *Cpu, _: *const Memory) void {
-    std.debug.print("RUN OPCODE: {s}\n", .{"POP DE"});
-}
-pub fn jp_nc_nn(_: *Cpu, _: *const Memory) void {
-    std.debug.print("RUN OPCODE: {s}\n", .{"JP NC,nn"});
-}
-pub fn call_nc_nn(_: *Cpu, _: *const Memory) void {
-    std.debug.print("RUN OPCODE: {s}\n", .{"CALL NC,nn"});
-}
-pub fn push_de(_: *Cpu, _: *const Memory) void {
-    std.debug.print("RUN OPCODE: {s}\n", .{"PUSH DE"});
-}
-pub fn sub_n(_: *Cpu, _: *const Memory) void {
-    std.debug.print("RUN OPCODE: {s}\n", .{"SUB n"});
-}
-pub fn rst_10(_: *Cpu, _: *const Memory) void {
-    std.debug.print("RUN OPCODE: {s}\n", .{"RST 10"});
-}
-pub fn ret_c(_: *Cpu, _: *const Memory) void {
-    std.debug.print("RUN OPCODE: {s}\n", .{"RET C"});
-}
-pub fn reti(_: *Cpu, _: *const Memory) void {
-    std.debug.print("RUN OPCODE: {s}\n", .{"RETI"});
-}
-pub fn jp_c_nn(_: *Cpu, _: *const Memory) void {
-    std.debug.print("RUN OPCODE: {s}\n", .{"JP C,nn"});
-}
-pub fn call_c_nn(_: *Cpu, _: *const Memory) void {
-    std.debug.print("RUN OPCODE: {s}\n", .{"CALL C,nn"});
-}
-pub fn sbc_a_n(_: *Cpu, _: *const Memory) void {
-    std.debug.print("RUN OPCODE: {s}\n", .{"SBC A,n"});
-}
-pub fn rst_18(_: *Cpu, _: *const Memory) void {
-    std.debug.print("RUN OPCODE: {s}\n", .{"RST 18"});
-}
-pub fn ld_nn_a(_: *Cpu, _: *const Memory) void {
+pub fn ld_nn_a(_: *Cpu, _: *Memory) void {
     std.debug.print("RUN OPCODE: {s}\n", .{"LD (nn),A"});
 }
-pub fn pop_hl(_: *Cpu, _: *const Memory) void {
-    std.debug.print("RUN OPCODE: {s}\n", .{"POP HL"});
-}
-pub fn ld_a_nn(_: *Cpu, _: *const Memory) void {
+pub fn ld_a_nn(_: *Cpu, _: *Memory) void {
     std.debug.print("RUN OPCODE: {s}\n", .{"LD A,(nn)"});
 }
-pub fn di(_: *Cpu, _: *const Memory) void {
-    std.debug.print("RUN OPCODE: {s}\n", .{"DI"});
-}
-pub fn push_hl(_: *Cpu, _: *const Memory) void {
-    std.debug.print("RUN OPCODE: {s}\n", .{"PUSH HL"});
-}
-pub fn and_n(_: *Cpu, _: *const Memory) void {
-    std.debug.print("RUN OPCODE: {s}\n", .{"AND n"});
-}
-pub fn rst_20(_: *Cpu, _: *const Memory) void {
-    std.debug.print("RUN OPCODE: {s}\n", .{"RST 20"});
-}
-pub fn add_sp_n(_: *Cpu, _: *const Memory) void {
-    std.debug.print("RUN OPCODE: {s}\n", .{"ADD SP,n"});
-}
-pub fn jp_hl(_: *Cpu, _: *const Memory) void {
-    std.debug.print("RUN OPCODE: {s}\n", .{"JP (HL)"});
-}
-pub fn ld_nn_a2(_: *Cpu, _: *const Memory) void {
-    std.debug.print("RUN OPCODE: {s}\n", .{"LD (nn),A"});
-}
-pub fn ei(_: *Cpu, _: *const Memory) void {
-    std.debug.print("RUN OPCODE: {s}\n", .{"EI"});
-}
-pub fn call_nn2(_: *Cpu, _: *const Memory) void {
-    std.debug.print("RUN OPCODE: {s}\n", .{"CALL nn"});
-}
-pub fn xor_n(_: *Cpu, _: *const Memory) void {
-    std.debug.print("RUN OPCODE: {s}\n", .{"XOR n"});
-}
-pub fn rst_28(_: *Cpu, _: *const Memory) void {
-    std.debug.print("RUN OPCODE: {s}\n", .{"RST 28"});
-}
-pub fn ld_a_from_c(_: *Cpu, _: *const Memory) void {
+pub fn ld_a_from_c(_: *Cpu, _: *Memory) void {
     std.debug.print("RUN OPCODE: {s}\n", .{"LD A,(C)"});
 }
-pub fn pop_af(_: *Cpu, _: *const Memory) void {
-    std.debug.print("RUN OPCODE: {s}\n", .{"POP AF"});
-}
-pub fn ld_a_nn2(_: *Cpu, _: *const Memory) void {
-    std.debug.print("RUN OPCODE: {s}\n", .{"LD A,(nn)"});
-}
-pub fn di2(_: *Cpu, _: *const Memory) void {
-    std.debug.print("RUN OPCODE: {s}\n", .{"DI"});
-}
-pub fn push_af(_: *Cpu, _: *const Memory) void {
-    std.debug.print("RUN OPCODE: {s}\n", .{"PUSH AF"});
-}
-pub fn or_n(_: *Cpu, _: *const Memory) void {
-    std.debug.print("RUN OPCODE: {s}\n", .{"OR n"});
-}
-pub fn rst_30(_: *Cpu, _: *const Memory) void {
-    std.debug.print("RUN OPCODE: {s}\n", .{"RST 30"});
-}
-pub fn ld_sp_hl(_: *Cpu, _: *const Memory) void {
+pub fn ld_sp_hl(_: *Cpu, _: *Memory) void {
     std.debug.print("RUN OPCODE: {s}\n", .{"LD SP,HL"});
 }
-pub fn ld_hl_sp_n(_: *Cpu, _: *const Memory) void {
+pub fn ld_hl_sp_n(_: *Cpu, _: *Memory) void {
     std.debug.print("RUN OPCODE: {s}\n", .{"LD HL,SP+n"});
 }
-pub fn ld_a_nn3(_: *Cpu, _: *const Memory) void {
-    std.debug.print("RUN OPCODE: {s}\n", .{"LD A,(nn)"});
+
+// ============================================================================
+// Increment/Decrement - 8-bit (INC r / DEC r)
+// ============================================================================
+
+pub fn inc_b(_: *Cpu, _: *Memory) void {
+    std.debug.print("RUN OPCODE: {s}\n", .{"INC B"});
 }
-pub fn ei2(_: *Cpu, _: *const Memory) void {
-    std.debug.print("RUN OPCODE: {s}\n", .{"EI"});
+pub fn dec_b(_: *Cpu, _: *Memory) void {
+    std.debug.print("RUN OPCODE: {s}\n", .{"DEC B"});
 }
-pub fn call_nn3(_: *Cpu, _: *const Memory) void {
-    std.debug.print("RUN OPCODE: {s}\n", .{"CALL nn"});
+pub fn inc_c(_: *Cpu, _: *Memory) void {
+    std.debug.print("RUN OPCODE: {s}\n", .{"INC C"});
 }
-pub fn cp_n(_: *Cpu, _: *const Memory) void {
+pub fn dec_c(_: *Cpu, _: *Memory) void {
+    std.debug.print("RUN OPCODE: {s}\n", .{"DEC C"});
+}
+pub fn inc_d(_: *Cpu, _: *Memory) void {
+    std.debug.print("RUN OPCODE: {s}\n", .{"INC D"});
+}
+pub fn dec_d(_: *Cpu, _: *Memory) void {
+    std.debug.print("RUN OPCODE: {s}\n", .{"DEC D"});
+}
+pub fn inc_e(_: *Cpu, _: *Memory) void {
+    std.debug.print("RUN OPCODE: {s}\n", .{"INC E"});
+}
+pub fn dec_e(_: *Cpu, _: *Memory) void {
+    std.debug.print("RUN OPCODE: {s}\n", .{"DEC E"});
+}
+pub fn inc_h(_: *Cpu, _: *Memory) void {
+    std.debug.print("RUN OPCODE: {s}\n", .{"INC H"});
+}
+pub fn dec_h(_: *Cpu, _: *Memory) void {
+    std.debug.print("RUN OPCODE: {s}\n", .{"DEC H"});
+}
+pub fn inc_l(_: *Cpu, _: *Memory) void {
+    std.debug.print("RUN OPCODE: {s}\n", .{"INC L"});
+}
+pub fn dec_l(_: *Cpu, _: *Memory) void {
+    std.debug.print("RUN OPCODE: {s}\n", .{"DEC L"});
+}
+pub fn inc_a(_: *Cpu, _: *Memory) void {
+    std.debug.print("RUN OPCODE: {s}\n", .{"INC A"});
+}
+pub fn dec_a(_: *Cpu, _: *Memory) void {
+    std.debug.print("RUN OPCODE: {s}\n", .{"DEC A"});
+}
+pub fn inc_hli(_: *Cpu, _: *Memory) void {
+    std.debug.print("RUN OPCODE: {s}\n", .{"INC (HL)"});
+}
+pub fn dec_hli(_: *Cpu, _: *Memory) void {
+    std.debug.print("RUN OPCODE: {s}\n", .{"DEC (HL)"});
+}
+
+// ============================================================================
+// Increment/Decrement - 16-bit (INC rr / DEC rr)
+// ============================================================================
+
+pub fn inc_bc(_: *Cpu, _: *Memory) void {
+    std.debug.print("RUN OPCODE: {s}\n", .{"INC BC"});
+}
+pub fn dec_bc(_: *Cpu, _: *Memory) void {
+    std.debug.print("RUN OPCODE: {s}\n", .{"DEC BC"});
+}
+pub fn inc_de(_: *Cpu, _: *Memory) void {
+    std.debug.print("RUN OPCODE: {s}\n", .{"INC DE"});
+}
+pub fn dec_de(_: *Cpu, _: *Memory) void {
+    std.debug.print("RUN OPCODE: {s}\n", .{"DEC DE"});
+}
+pub fn inc_hl(_: *Cpu, _: *Memory) void {
+    std.debug.print("RUN OPCODE: {s}\n", .{"INC HL"});
+}
+pub fn dec_hl(_: *Cpu, _: *Memory) void {
+    std.debug.print("RUN OPCODE: {s}\n", .{"DEC HL"});
+}
+pub fn inc_sp(_: *Cpu, _: *Memory) void {
+    std.debug.print("RUN OPCODE: {s}\n", .{"INC SP"});
+}
+pub fn dec_sp(_: *Cpu, _: *Memory) void {
+    std.debug.print("RUN OPCODE: {s}\n", .{"DEC SP"});
+}
+
+// ============================================================================
+// Add - 8-bit (ADD A,r)
+// ============================================================================
+
+pub fn add_a_b(_: *Cpu, _: *Memory) void {
+    std.debug.print("RUN OPCODE: {s}\n", .{"ADD A,B"});
+}
+pub fn add_a_c(_: *Cpu, _: *Memory) void {
+    std.debug.print("RUN OPCODE: {s}\n", .{"ADD A,C"});
+}
+pub fn add_a_d(_: *Cpu, _: *Memory) void {
+    std.debug.print("RUN OPCODE: {s}\n", .{"ADD A,D"});
+}
+pub fn add_a_e(_: *Cpu, _: *Memory) void {
+    std.debug.print("RUN OPCODE: {s}\n", .{"ADD A,E"});
+}
+pub fn add_a_h(_: *Cpu, _: *Memory) void {
+    std.debug.print("RUN OPCODE: {s}\n", .{"ADD A,H"});
+}
+pub fn add_a_l(_: *Cpu, _: *Memory) void {
+    std.debug.print("RUN OPCODE: {s}\n", .{"ADD A,L"});
+}
+pub fn add_a_hli(_: *Cpu, _: *Memory) void {
+    std.debug.print("RUN OPCODE: {s}\n", .{"ADD A,(HL)"});
+}
+pub fn add_a_a(_: *Cpu, _: *Memory) void {
+    std.debug.print("RUN OPCODE: {s}\n", .{"ADD A,A"});
+}
+pub fn add_a_n(_: *Cpu, _: *Memory) void {
+    std.debug.print("RUN OPCODE: {s}\n", .{"ADD A,n"});
+}
+
+// Add - 16-bit (ADD HL,rr)
+pub fn add_hl_bc(_: *Cpu, _: *Memory) void {
+    std.debug.print("RUN OPCODE: {s}\n", .{"ADD HL,BC"});
+}
+pub fn add_hl_de(_: *Cpu, _: *Memory) void {
+    std.debug.print("RUN OPCODE: {s}\n", .{"ADD HL,DE"});
+}
+pub fn add_hl_hl(_: *Cpu, _: *Memory) void {
+    std.debug.print("RUN OPCODE: {s}\n", .{"ADD HL,HL"});
+}
+pub fn add_hl_sp(_: *Cpu, _: *Memory) void {
+    std.debug.print("RUN OPCODE: {s}\n", .{"ADD HL,SP"});
+}
+pub fn add_sp_n(_: *Cpu, _: *Memory) void {
+    std.debug.print("RUN OPCODE: {s}\n", .{"ADD SP,n"});
+}
+
+// ============================================================================
+// Add with Carry (ADC A,r)
+// ============================================================================
+
+pub fn adc_a_b(_: *Cpu, _: *Memory) void {
+    std.debug.print("RUN OPCODE: {s}\n", .{"ADC A,B"});
+}
+pub fn adc_a_c(_: *Cpu, _: *Memory) void {
+    std.debug.print("RUN OPCODE: {s}\n", .{"ADC A,C"});
+}
+pub fn adc_a_d(_: *Cpu, _: *Memory) void {
+    std.debug.print("RUN OPCODE: {s}\n", .{"ADC A,D"});
+}
+pub fn adc_a_e(_: *Cpu, _: *Memory) void {
+    std.debug.print("RUN OPCODE: {s}\n", .{"ADC A,E"});
+}
+pub fn adc_a_h(_: *Cpu, _: *Memory) void {
+    std.debug.print("RUN OPCODE: {s}\n", .{"ADC A,H"});
+}
+pub fn adc_a_l(_: *Cpu, _: *Memory) void {
+    std.debug.print("RUN OPCODE: {s}\n", .{"ADC A,L"});
+}
+pub fn adc_a_hli(_: *Cpu, _: *Memory) void {
+    std.debug.print("RUN OPCODE: {s}\n", .{"ADC A,(HL)"});
+}
+pub fn adc_a_a(_: *Cpu, _: *Memory) void {
+    std.debug.print("RUN OPCODE: {s}\n", .{"ADC A,A"});
+}
+pub fn adc_a_n(_: *Cpu, _: *Memory) void {
+    std.debug.print("RUN OPCODE: {s}\n", .{"ADC A,n"});
+}
+
+// ============================================================================
+// Subtract (SUB r)
+// ============================================================================
+
+pub fn sub_b(_: *Cpu, _: *Memory) void {
+    std.debug.print("RUN OPCODE: {s}\n", .{"SUB B"});
+}
+pub fn sub_c(_: *Cpu, _: *Memory) void {
+    std.debug.print("RUN OPCODE: {s}\n", .{"SUB C"});
+}
+pub fn sub_d(_: *Cpu, _: *Memory) void {
+    std.debug.print("RUN OPCODE: {s}\n", .{"SUB D"});
+}
+pub fn sub_e(_: *Cpu, _: *Memory) void {
+    std.debug.print("RUN OPCODE: {s}\n", .{"SUB E"});
+}
+pub fn sub_h(_: *Cpu, _: *Memory) void {
+    std.debug.print("RUN OPCODE: {s}\n", .{"SUB H"});
+}
+pub fn sub_l(_: *Cpu, _: *Memory) void {
+    std.debug.print("RUN OPCODE: {s}\n", .{"SUB L"});
+}
+pub fn sub_hli(_: *Cpu, _: *Memory) void {
+    std.debug.print("RUN OPCODE: {s}\n", .{"SUB (HL)"});
+}
+pub fn sub_a(_: *Cpu, _: *Memory) void {
+    std.debug.print("RUN OPCODE: {s}\n", .{"SUB A"});
+}
+pub fn sub_n(_: *Cpu, _: *Memory) void {
+    std.debug.print("RUN OPCODE: {s}\n", .{"SUB n"});
+}
+
+// ============================================================================
+// Subtract with Carry (SBC A,r)
+// ============================================================================
+
+pub fn sbc_a_b(_: *Cpu, _: *Memory) void {
+    std.debug.print("RUN OPCODE: {s}\n", .{"SBC A,B"});
+}
+pub fn sbc_a_c(_: *Cpu, _: *Memory) void {
+    std.debug.print("RUN OPCODE: {s}\n", .{"SBC A,C"});
+}
+pub fn sbc_a_d(_: *Cpu, _: *Memory) void {
+    std.debug.print("RUN OPCODE: {s}\n", .{"SBC A,D"});
+}
+pub fn sbc_a_e(_: *Cpu, _: *Memory) void {
+    std.debug.print("RUN OPCODE: {s}\n", .{"SBC A,E"});
+}
+pub fn sbc_a_h(_: *Cpu, _: *Memory) void {
+    std.debug.print("RUN OPCODE: {s}\n", .{"SBC A,H"});
+}
+pub fn sbc_a_l(_: *Cpu, _: *Memory) void {
+    std.debug.print("RUN OPCODE: {s}\n", .{"SBC A,L"});
+}
+pub fn sbc_a_hli(_: *Cpu, _: *Memory) void {
+    std.debug.print("RUN OPCODE: {s}\n", .{"SBC A,(HL)"});
+}
+pub fn sbc_a_a(_: *Cpu, _: *Memory) void {
+    std.debug.print("RUN OPCODE: {s}\n", .{"SBC A,A"});
+}
+pub fn sbc_a_n(_: *Cpu, _: *Memory) void {
+    std.debug.print("RUN OPCODE: {s}\n", .{"SBC A,n"});
+}
+
+// ============================================================================
+// Logical AND (AND r)
+// ============================================================================
+
+pub fn and_b(_: *Cpu, _: *Memory) void {
+    std.debug.print("RUN OPCODE: {s}\n", .{"AND B"});
+}
+pub fn and_c(_: *Cpu, _: *Memory) void {
+    std.debug.print("RUN OPCODE: {s}\n", .{"AND C"});
+}
+pub fn and_d(_: *Cpu, _: *Memory) void {
+    std.debug.print("RUN OPCODE: {s}\n", .{"AND D"});
+}
+pub fn and_e(_: *Cpu, _: *Memory) void {
+    std.debug.print("RUN OPCODE: {s}\n", .{"AND E"});
+}
+pub fn and_h(_: *Cpu, _: *Memory) void {
+    std.debug.print("RUN OPCODE: {s}\n", .{"AND H"});
+}
+pub fn and_l(_: *Cpu, _: *Memory) void {
+    std.debug.print("RUN OPCODE: {s}\n", .{"AND L"});
+}
+pub fn and_hli(_: *Cpu, _: *Memory) void {
+    std.debug.print("RUN OPCODE: {s}\n", .{"AND (HL)"});
+}
+pub fn and_a(_: *Cpu, _: *Memory) void {
+    std.debug.print("RUN OPCODE: {s}\n", .{"AND A"});
+}
+pub fn and_n(_: *Cpu, _: *Memory) void {
+    std.debug.print("RUN OPCODE: {s}\n", .{"AND n"});
+}
+
+// ============================================================================
+// Logical XOR (XOR r)
+// ============================================================================
+
+pub fn xor_b(_: *Cpu, _: *Memory) void {
+    std.debug.print("RUN OPCODE: {s}\n", .{"XOR B"});
+}
+pub fn xor_c(_: *Cpu, _: *Memory) void {
+    std.debug.print("RUN OPCODE: {s}\n", .{"XOR C"});
+}
+pub fn xor_d(_: *Cpu, _: *Memory) void {
+    std.debug.print("RUN OPCODE: {s}\n", .{"XOR D"});
+}
+pub fn xor_e(_: *Cpu, _: *Memory) void {
+    std.debug.print("RUN OPCODE: {s}\n", .{"XOR E"});
+}
+pub fn xor_h(_: *Cpu, _: *Memory) void {
+    std.debug.print("RUN OPCODE: {s}\n", .{"XOR H"});
+}
+pub fn xor_l(_: *Cpu, _: *Memory) void {
+    std.debug.print("RUN OPCODE: {s}\n", .{"XOR L"});
+}
+pub fn xor_hli(_: *Cpu, _: *Memory) void {
+    std.debug.print("RUN OPCODE: {s}\n", .{"XOR (HL)"});
+}
+pub fn xor_a(_: *Cpu, _: *Memory) void {
+    std.debug.print("RUN OPCODE: {s}\n", .{"XOR A"});
+}
+pub fn xor_n(_: *Cpu, _: *Memory) void {
+    std.debug.print("RUN OPCODE: {s}\n", .{"XOR n"});
+}
+
+// ============================================================================
+// Logical OR (OR r)
+// ============================================================================
+
+pub fn or_b(_: *Cpu, _: *Memory) void {
+    std.debug.print("RUN OPCODE: {s}\n", .{"OR B"});
+}
+pub fn or_c(_: *Cpu, _: *Memory) void {
+    std.debug.print("RUN OPCODE: {s}\n", .{"OR C"});
+}
+pub fn or_d(_: *Cpu, _: *Memory) void {
+    std.debug.print("RUN OPCODE: {s}\n", .{"OR D"});
+}
+pub fn or_e(_: *Cpu, _: *Memory) void {
+    std.debug.print("RUN OPCODE: {s}\n", .{"OR E"});
+}
+pub fn or_h(_: *Cpu, _: *Memory) void {
+    std.debug.print("RUN OPCODE: {s}\n", .{"OR H"});
+}
+pub fn or_l(_: *Cpu, _: *Memory) void {
+    std.debug.print("RUN OPCODE: {s}\n", .{"OR L"});
+}
+pub fn or_hli(_: *Cpu, _: *Memory) void {
+    std.debug.print("RUN OPCODE: {s}\n", .{"OR (HL)"});
+}
+pub fn or_a(_: *Cpu, _: *Memory) void {
+    std.debug.print("RUN OPCODE: {s}\n", .{"OR A"});
+}
+pub fn or_n(_: *Cpu, _: *Memory) void {
+    std.debug.print("RUN OPCODE: {s}\n", .{"OR n"});
+}
+
+// ============================================================================
+// Compare (CP r)
+// ============================================================================
+
+pub fn cp_b(_: *Cpu, _: *Memory) void {
+    std.debug.print("RUN OPCODE: {s}\n", .{"CP B"});
+}
+pub fn cp_c(_: *Cpu, _: *Memory) void {
+    std.debug.print("RUN OPCODE: {s}\n", .{"CP C"});
+}
+pub fn cp_d(_: *Cpu, _: *Memory) void {
+    std.debug.print("RUN OPCODE: {s}\n", .{"CP D"});
+}
+pub fn cp_e(_: *Cpu, _: *Memory) void {
+    std.debug.print("RUN OPCODE: {s}\n", .{"CP E"});
+}
+pub fn cp_h(_: *Cpu, _: *Memory) void {
+    std.debug.print("RUN OPCODE: {s}\n", .{"CP H"});
+}
+pub fn cp_l(_: *Cpu, _: *Memory) void {
+    std.debug.print("RUN OPCODE: {s}\n", .{"CP L"});
+}
+pub fn cp_hli(_: *Cpu, _: *Memory) void {
+    std.debug.print("RUN OPCODE: {s}\n", .{"CP (HL)"});
+}
+pub fn cp_a(_: *Cpu, _: *Memory) void {
+    std.debug.print("RUN OPCODE: {s}\n", .{"CP A"});
+}
+pub fn cp_n(_: *Cpu, _: *Memory) void {
     std.debug.print("RUN OPCODE: {s}\n", .{"CP n"});
 }
-pub fn rst_38(_: *Cpu, _: *const Memory) void {
+
+// ============================================================================
+// Jump (JP / JR)
+// ============================================================================
+
+pub fn jp_nn(_: *Cpu, _: *Memory) void {
+    std.debug.print("RUN OPCODE: {s}\n", .{"JP nn"});
+}
+pub fn jp_nz_nn(_: *Cpu, _: *Memory) void {
+    std.debug.print("RUN OPCODE: {s}\n", .{"JP NZ,nn"});
+}
+pub fn jp_z_nn(_: *Cpu, _: *Memory) void {
+    std.debug.print("RUN OPCODE: {s}\n", .{"JP Z,nn"});
+}
+pub fn jp_nc_nn(_: *Cpu, _: *Memory) void {
+    std.debug.print("RUN OPCODE: {s}\n", .{"JP NC,nn"});
+}
+pub fn jp_c_nn(_: *Cpu, _: *Memory) void {
+    std.debug.print("RUN OPCODE: {s}\n", .{"JP C,nn"});
+}
+pub fn jp_hl(_: *Cpu, _: *Memory) void {
+    std.debug.print("RUN OPCODE: {s}\n", .{"JP (HL)"});
+}
+
+pub fn jr_n(_: *Cpu, _: *Memory) void {
+    std.debug.print("RUN OPCODE: {s}\n", .{"JR n"});
+}
+pub fn jr_nz_n(_: *Cpu, _: *Memory) void {
+    std.debug.print("RUN OPCODE: {s}\n", .{"JR NZ,n"});
+}
+pub fn jr_z_n(_: *Cpu, _: *Memory) void {
+    std.debug.print("RUN OPCODE: {s}\n", .{"JR Z,n"});
+}
+pub fn jr_nc_n(_: *Cpu, _: *Memory) void {
+    std.debug.print("RUN OPCODE: {s}\n", .{"JR NC,n"});
+}
+pub fn jr_c_n(_: *Cpu, _: *Memory) void {
+    std.debug.print("RUN OPCODE: {s}\n", .{"JR C,n"});
+}
+
+// ============================================================================
+// Call / Return / Restart
+// ============================================================================
+
+pub fn call_nn(_: *Cpu, _: *Memory) void {
+    std.debug.print("RUN OPCODE: {s}\n", .{"CALL nn"});
+}
+
+pub fn call_nn3(_: *Cpu, _: *Memory) void {
+    std.debug.print("RUN OPCODE: {s}\n", .{"CALL nn"});
+}
+pub fn call_nz_nn(_: *Cpu, _: *Memory) void {
+    std.debug.print("RUN OPCODE: {s}\n", .{"CALL NZ,nn"});
+}
+pub fn call_z_nn(_: *Cpu, _: *Memory) void {
+    std.debug.print("RUN OPCODE: {s}\n", .{"CALL Z,nn"});
+}
+pub fn call_nc_nn(_: *Cpu, _: *Memory) void {
+    std.debug.print("RUN OPCODE: {s}\n", .{"CALL NC,nn"});
+}
+pub fn call_c_nn(_: *Cpu, _: *Memory) void {
+    std.debug.print("RUN OPCODE: {s}\n", .{"CALL C,nn"});
+}
+
+pub fn ret(_: *Cpu, _: *Memory) void {
+    std.debug.print("RUN OPCODE: {s}\n", .{"RET"});
+}
+pub fn ret_nz(_: *Cpu, _: *Memory) void {
+    std.debug.print("RUN OPCODE: {s}\n", .{"RET NZ"});
+}
+pub fn ret_z(_: *Cpu, _: *Memory) void {
+    std.debug.print("RUN OPCODE: {s}\n", .{"RET Z"});
+}
+pub fn ret_nc(_: *Cpu, _: *Memory) void {
+    std.debug.print("RUN OPCODE: {s}\n", .{"RET NC"});
+}
+pub fn ret_c(_: *Cpu, _: *Memory) void {
+    std.debug.print("RUN OPCODE: {s}\n", .{"RET C"});
+}
+pub fn reti(_: *Cpu, _: *Memory) void {
+    std.debug.print("RUN OPCODE: {s}\n", .{"RETI"});
+}
+
+pub fn rst_00(_: *Cpu, _: *Memory) void {
+    std.debug.print("RUN OPCODE: {s}\n", .{"RST 00"});
+}
+pub fn rst_08(_: *Cpu, _: *Memory) void {
+    std.debug.print("RUN OPCODE: {s}\n", .{"RST 08"});
+}
+pub fn rst_10(_: *Cpu, _: *Memory) void {
+    std.debug.print("RUN OPCODE: {s}\n", .{"RST 10"});
+}
+pub fn rst_18(_: *Cpu, _: *Memory) void {
+    std.debug.print("RUN OPCODE: {s}\n", .{"RST 18"});
+}
+pub fn rst_20(_: *Cpu, _: *Memory) void {
+    std.debug.print("RUN OPCODE: {s}\n", .{"RST 20"});
+}
+pub fn rst_28(_: *Cpu, _: *Memory) void {
+    std.debug.print("RUN OPCODE: {s}\n", .{"RST 28"});
+}
+pub fn rst_30(_: *Cpu, _: *Memory) void {
+    std.debug.print("RUN OPCODE: {s}\n", .{"RST 30"});
+}
+pub fn rst_38(_: *Cpu, _: *Memory) void {
     std.debug.print("RUN OPCODE: {s}\n", .{"RST 38"});
 }
-pub fn prefix_cb(_: *Cpu, _: *const Memory) void {
+
+// ============================================================================
+// Push / Pop
+// ============================================================================
+
+pub fn push_bc(_: *Cpu, _: *Memory) void {
+    std.debug.print("RUN OPCODE: {s}\n", .{"PUSH BC"});
+}
+pub fn push_de(_: *Cpu, _: *Memory) void {
+    std.debug.print("RUN OPCODE: {s}\n", .{"PUSH DE"});
+}
+pub fn push_hl(_: *Cpu, _: *Memory) void {
+    std.debug.print("RUN OPCODE: {s}\n", .{"PUSH HL"});
+}
+pub fn push_af(_: *Cpu, _: *Memory) void {
+    std.debug.print("RUN OPCODE: {s}\n", .{"PUSH AF"});
+}
+
+pub fn pop_bc(_: *Cpu, _: *Memory) void {
+    std.debug.print("RUN OPCODE: {s}\n", .{"POP BC"});
+}
+pub fn pop_de(_: *Cpu, _: *Memory) void {
+    std.debug.print("RUN OPCODE: {s}\n", .{"POP DE"});
+}
+pub fn pop_hl(_: *Cpu, _: *Memory) void {
+    std.debug.print("RUN OPCODE: {s}\n", .{"POP HL"});
+}
+pub fn pop_af(_: *Cpu, _: *Memory) void {
+    std.debug.print("RUN OPCODE: {s}\n", .{"POP AF"});
+}
+
+// ============================================================================
+// Rotate / Shift
+// ============================================================================
+
+pub fn rlca(_: *Cpu, _: *Memory) void {
+    std.debug.print("RUN OPCODE: {s}\n", .{"RLCA"});
+}
+pub fn rrca(_: *Cpu, _: *Memory) void {
+    std.debug.print("RUN OPCODE: {s}\n", .{"RRCA"});
+}
+pub fn rla(_: *Cpu, _: *Memory) void {
+    std.debug.print("RUN OPCODE: {s}\n", .{"RLA"});
+}
+pub fn rra(_: *Cpu, _: *Memory) void {
+    std.debug.print("RUN OPCODE: {s}\n", .{"RRA"});
+}
+
+// ============================================================================
+// Miscellaneous
+// ============================================================================
+
+pub fn nop(_: *Cpu, _: *Memory) void {
+    std.debug.print("RUN OPCODE: {s}\n", .{"NOP"});
+}
+pub fn halt(_: *Cpu, _: *Memory) void {
+    std.debug.print("RUN OPCODE: {s}\n", .{"HALT"});
+}
+pub fn stop(_: *Cpu, _: *Memory) void {
+    std.debug.print("RUN OPCODE: {s}\n", .{"STOP"});
+}
+pub fn di(_: *Cpu, _: *Memory) void {
+    std.debug.print("RUN OPCODE: {s}\n", .{"DI"});
+}
+pub fn ei(_: *Cpu, _: *Memory) void {
+    std.debug.print("RUN OPCODE: {s}\n", .{"EI"});
+}
+pub fn daa(_: *Cpu, _: *Memory) void {
+    std.debug.print("RUN OPCODE: {s}\n", .{"DAA"});
+}
+pub fn cpl(_: *Cpu, _: *Memory) void {
+    std.debug.print("RUN OPCODE: {s}\n", .{"CPL"});
+}
+pub fn scf(_: *Cpu, _: *Memory) void {
+    std.debug.print("RUN OPCODE: {s}\n", .{"SCF"});
+}
+pub fn ccf(_: *Cpu, _: *Memory) void {
+    std.debug.print("RUN OPCODE: {s}\n", .{"CCF"});
+}
+
+// ============================================================================
+// Prefix CB
+// ============================================================================
+
+pub fn prefix_cb(_: *Cpu, _: *Memory) void {
     std.debug.print("RUN OPCODE: {s}\n", .{"PREFIX CB"});
 }

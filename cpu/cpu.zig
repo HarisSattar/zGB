@@ -9,7 +9,7 @@ pub const Flags = packed struct(u8) {
     n: u1,
     z: u1,
 
-    pub fn format(self: @This(), writer: anytype) !void {
+    pub fn format(self: Flags, writer: anytype) !void {
         try writer.print("Flags:\n", .{});
         try writer.print("Z: 0x{X}", .{self.z});
         try writer.print(" N: 0x{X}", .{self.n});
@@ -39,7 +39,7 @@ pub const Registers = packed struct(u96) {
     sp: u16 = 0xFFFE,
 
     pub fn format(
-        self: @This(),
+        self: Registers,
         writer: anytype,
     ) !void {
         try writer.print("Registers\n", .{});
@@ -56,13 +56,17 @@ pub const Registers = packed struct(u96) {
 pub const Cpu = struct {
     registers: Registers = .{},
 
-    pub fn step(self: *Cpu, memory: *const Memory) void {
+    pub fn step(self: *Cpu, memory: *Memory) void {
         const opcode = memory.read(self.registers.pc);
-        self.registers.pc +%= 1;
+        self.increment_pc();
         self.execute(opcode, memory);
     }
 
-    pub fn execute(self: *Cpu, opcode: u8, memory: *const Memory) void {
+    pub fn increment_pc(self: *Cpu) void {
+        self.registers.pc +%= 1;
+    }
+
+    pub fn execute(self: *Cpu, opcode: u8, memory: *Memory) void {
         switch (opcode) {
             0x00 => ops.nop(self, memory),
             0x01 => ops.ld_bc_nn(self, memory),
@@ -128,54 +132,54 @@ pub const Cpu = struct {
             0x3D => ops.dec_a(self, memory),
             0x3E => ops.ld_a_n(self, memory),
             0x3F => ops.ccf(self, memory),
-            0x40 => ops.ld_b_b(self, memory),
-            0x41 => ops.ld_b_c(self, memory),
-            0x42 => ops.ld_b_d(self, memory),
-            0x43 => ops.ld_b_e(self, memory),
-            0x44 => ops.ld_b_h(self, memory),
-            0x45 => ops.ld_b_l(self, memory),
+            0x40 => ops.ld_b_b(self),
+            0x41 => ops.ld_b_c(self),
+            0x42 => ops.ld_b_d(self),
+            0x43 => ops.ld_b_e(self),
+            0x44 => ops.ld_b_h(self),
+            0x45 => ops.ld_b_l(self),
             0x46 => ops.ld_b_hli(self, memory),
-            0x47 => ops.ld_b_a(self, memory),
-            0x48 => ops.ld_c_b(self, memory),
-            0x49 => ops.ld_c_c(self, memory),
-            0x4A => ops.ld_c_d(self, memory),
-            0x4B => ops.ld_c_e(self, memory),
-            0x4C => ops.ld_c_h(self, memory),
-            0x4D => ops.ld_c_l(self, memory),
+            0x47 => ops.ld_b_a(self),
+            0x48 => ops.ld_c_b(self),
+            0x49 => ops.ld_c_c(self),
+            0x4A => ops.ld_c_d(self),
+            0x4B => ops.ld_c_e(self),
+            0x4C => ops.ld_c_h(self),
+            0x4D => ops.ld_c_l(self),
             0x4E => ops.ld_c_hli(self, memory),
-            0x4F => ops.ld_c_a(self, memory),
-            0x50 => ops.ld_d_b(self, memory),
-            0x51 => ops.ld_d_c(self, memory),
-            0x52 => ops.ld_d_d(self, memory),
-            0x53 => ops.ld_d_e(self, memory),
-            0x54 => ops.ld_d_h(self, memory),
-            0x55 => ops.ld_d_l(self, memory),
+            0x4F => ops.ld_c_a(self),
+            0x50 => ops.ld_d_b(self),
+            0x51 => ops.ld_d_c(self),
+            0x52 => ops.ld_d_d(self),
+            0x53 => ops.ld_d_e(self),
+            0x54 => ops.ld_d_h(self),
+            0x55 => ops.ld_d_l(self),
             0x56 => ops.ld_d_hli(self, memory),
-            0x57 => ops.ld_d_a(self, memory),
-            0x58 => ops.ld_e_b(self, memory),
-            0x59 => ops.ld_e_c(self, memory),
-            0x5A => ops.ld_e_d(self, memory),
-            0x5B => ops.ld_e_e(self, memory),
-            0x5C => ops.ld_e_h(self, memory),
-            0x5D => ops.ld_e_l(self, memory),
+            0x57 => ops.ld_d_a(self),
+            0x58 => ops.ld_e_b(self),
+            0x59 => ops.ld_e_c(self),
+            0x5A => ops.ld_e_d(self),
+            0x5B => ops.ld_e_e(self),
+            0x5C => ops.ld_e_h(self),
+            0x5D => ops.ld_e_l(self),
             0x5E => ops.ld_e_hli(self, memory),
-            0x5F => ops.ld_e_a(self, memory),
-            0x60 => ops.ld_h_b(self, memory),
-            0x61 => ops.ld_h_c(self, memory),
-            0x62 => ops.ld_h_d(self, memory),
-            0x63 => ops.ld_h_e(self, memory),
-            0x64 => ops.ld_h_h(self, memory),
-            0x65 => ops.ld_h_l(self, memory),
+            0x5F => ops.ld_e_a(self),
+            0x60 => ops.ld_h_b(self),
+            0x61 => ops.ld_h_c(self),
+            0x62 => ops.ld_h_d(self),
+            0x63 => ops.ld_h_e(self),
+            0x64 => ops.ld_h_h(self),
+            0x65 => ops.ld_h_l(self),
             0x66 => ops.ld_h_hli(self, memory),
-            0x67 => ops.ld_h_a(self, memory),
-            0x68 => ops.ld_l_b(self, memory),
-            0x69 => ops.ld_l_c(self, memory),
-            0x6A => ops.ld_l_d(self, memory),
-            0x6B => ops.ld_l_e(self, memory),
-            0x6C => ops.ld_l_h(self, memory),
-            0x6D => ops.ld_l_l(self, memory),
+            0x67 => ops.ld_h_a(self),
+            0x68 => ops.ld_l_b(self),
+            0x69 => ops.ld_l_c(self),
+            0x6A => ops.ld_l_d(self),
+            0x6B => ops.ld_l_e(self),
+            0x6C => ops.ld_l_h(self),
+            0x6D => ops.ld_l_l(self),
             0x6E => ops.ld_l_hli(self, memory),
-            0x6F => ops.ld_l_a(self, memory),
+            0x6F => ops.ld_l_a(self),
             0x70 => ops.ld_hli_b(self, memory),
             0x71 => ops.ld_hli_c(self, memory),
             0x72 => ops.ld_hli_d(self, memory),
@@ -184,14 +188,14 @@ pub const Cpu = struct {
             0x75 => ops.ld_hli_l(self, memory),
             0x76 => ops.halt(self, memory),
             0x77 => ops.ld_hli_a(self, memory),
-            0x78 => ops.ld_a_b(self, memory),
-            0x79 => ops.ld_a_c(self, memory),
-            0x7A => ops.ld_a_d(self, memory),
-            0x7B => ops.ld_a_e(self, memory),
-            0x7C => ops.ld_a_h(self, memory),
-            0x7D => ops.ld_a_l(self, memory),
+            0x78 => ops.ld_a_b(self),
+            0x79 => ops.ld_a_c(self),
+            0x7A => ops.ld_a_d(self),
+            0x7B => ops.ld_a_e(self),
+            0x7C => ops.ld_a_h(self),
+            0x7D => ops.ld_a_l(self),
             0x7E => ops.ld_a_hli(self, memory),
-            0x7F => ops.ld_a_a(self, memory),
+            0x7F => ops.ld_a_a(self),
             0x80 => ops.add_a_b(self, memory),
             0x81 => ops.add_a_c(self, memory),
             0x82 => ops.add_a_d(self, memory),
@@ -298,7 +302,7 @@ pub const Cpu = struct {
             0xE7 => ops.rst_20(self, memory),
             0xE8 => ops.add_sp_n(self, memory),
             0xE9 => ops.jp_hl(self, memory),
-            0xEA => ops.ld_nn_a2(self, memory),
+            // 0xEA => ops.ld_nn_a2(self, memory),
             0xEB => {},
             0xEC => {},
             0xED => {},
@@ -314,12 +318,13 @@ pub const Cpu = struct {
             0xF7 => ops.rst_30(self, memory),
             0xF8 => ops.ld_hl_sp_n(self, memory),
             0xF9 => ops.ld_sp_hl(self, memory),
-            0xFA => ops.ld_a_nn3(self, memory),
+            // 0xFA => ops.ld_a_nn3(self, memory),
             0xFB => ops.ei(self, memory),
             0xFC => {},
             0xFD => {},
             0xFE => ops.cp_n(self, memory),
             0xFF => ops.rst_38(self, memory),
+            else => return,
         }
     }
 };

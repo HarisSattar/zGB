@@ -12,11 +12,11 @@ pub const Cartridge = struct {
 
     rom: []u8 = undefined,
 
-    pub fn read(self: *const @This(), address: u16) u8 {
+    pub fn read(self: *const Cartridge, address: u16) u8 {
         return self.rom[address];
     }
 
-    pub fn load(self: *@This(), allocator: std.mem.Allocator, filename: []const u8) !void {
+    pub fn load(self: *Cartridge, allocator: std.mem.Allocator, filename: []const u8) !void {
         const file = try std.fs.cwd().openFile(filename, .{});
         defer file.close();
 
@@ -40,7 +40,7 @@ pub const Cartridge = struct {
         allocator.free(self.rom);
     }
 
-    pub fn format(self: @This(), writer: anytype) !void {
+    pub fn format(self: Cartridge, writer: anytype) !void {
         try writer.print("Title: {s}\n", .{self.title});
         try writer.print("cartridge_type: {s}\n", .{@tagName(@as(CartridgeType, @enumFromInt(self.cartridge_type)))});
         try writer.print("cartridge_size: {s}\n", .{@tagName(@as(CartridgeSize, @enumFromInt(self.cartridge_size)))});

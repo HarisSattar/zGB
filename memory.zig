@@ -30,7 +30,7 @@ pub const Memory = struct {
     cartridge: Cartridge = .{},
     boot_rom_enabled: bool = true,
 
-    pub fn read(self: *const @This(), address: u16) u8 {
+    pub fn read(self: *Memory, address: u16) u8 {
         return switch (address) {
             MemoryMap.ROM0.start...MemoryMap.ROM0.end => self.cartridge.read(address),
             MemoryMap.ROM1_BANKED.start...MemoryMap.ROM1_BANKED.end => self.cartridge.read(address),
@@ -47,7 +47,7 @@ pub const Memory = struct {
         };
     }
 
-    pub fn write(self: *const @This(), address: u16, value: u8) void {
+    pub fn write(self: *Memory, address: u16, value: u8) void {
         switch (address) {
             MemoryMap.ROM0.start...MemoryMap.ROM0.end => return,
             MemoryMap.ROM1_BANKED.start...MemoryMap.ROM1_BANKED.end => return,
@@ -60,38 +60,39 @@ pub const Memory = struct {
             MemoryMap.IO.start...MemoryMap.IO.end => {},
             MemoryMap.HRAM.start...MemoryMap.HRAM.end => self.writeHram(address, value),
             MemoryMap.IE => {},
+            else => {},
         }
     }
 
-    fn readVram(self: *const @This(), address: u16) u8 {
+    fn readVram(self: *Memory, address: u16) u8 {
         return self.vram[address - 0x8000];
     }
 
-    fn readWram(self: *const @This(), address: u16) u8 {
+    fn readWram(self: *Memory, address: u16) u8 {
         return self.wram[address - 0xC000];
     }
 
-    fn readHram(self: *const @This(), address: u16) u8 {
+    fn readHram(self: *Memory, address: u16) u8 {
         return self.hram[address - 0xFF80];
     }
 
-    fn writeVram(self: *const @This(), address: u16, value: u8) void {
+    fn writeVram(self: *Memory, address: u16, value: u8) void {
         self.vram[address - 0x8000] = value;
     }
 
-    fn writeWram(self: *const @This(), address: u16, value: u8) void {
+    fn writeWram(self: *Memory, address: u16, value: u8) void {
         self.wram[address - 0xC000] = value;
     }
 
-    fn writeHram(self: *const @This(), address: u16, value: u8) void {
+    fn writeHram(self: *Memory, address: u16, value: u8) void {
         self.hram[address - 0xFF80] = value;
     }
 
-    pub fn load(self: *@This(), allocator: std.mem.Allocator, filename: []const u8) !void {
+    pub fn load(self: *Memory, allocator: std.mem.Allocator, filename: []const u8) !void {
         try self.cartridge.load(allocator, filename);
     }
 
-    pub fn deinit(self: *@This(), allocator: std.mem.Allocator) !void {
+    pub fn deinit(self: *Memory, allocator: std.mem.Allocator) !void {
         try self.cartridge.deinit(allocator);
     }
 };
