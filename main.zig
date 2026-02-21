@@ -13,8 +13,7 @@ pub fn main() !void {
     try gameBoy.load(allocator, "tetris.gb");
     std.debug.print("Cartridge Details:\n{f}\n", .{gameBoy.memory.cartridge});
 
-    const opcode = gameBoy.cpu.fetch(&gameBoy.memory);
-    std.debug.print("Opcode: 0x{X:0<2}", .{opcode});
+    gameBoy.cpu.step(&gameBoy.memory);
 
     try gameBoy.deinit(allocator);
 }
