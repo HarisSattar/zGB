@@ -412,9 +412,18 @@ pub fn ld_nn_a(cpu: *Cpu, memory: *Memory) void {
     const address = read_16bit(cpu, memory);
     memory.write(address, cpu.registers.af.bytes.a);
 }
+pub fn ldh_nn_a(_: *Cpu, _: *Memory) void {
+    std.debug.print("RUN OPCODE: {s}\n", .{"LDH (n),A"});
+}
+pub fn ld_ff00_c_a(_: *Cpu, _: *Memory) void {
+    std.debug.print("RUN OPCODE: {s}\n", .{"LD (C),A"});
+}
 pub fn ld_a_nn(cpu: *Cpu, memory: *Memory) void {
     std.debug.print("RUN OPCODE: {s}\n", .{"LD A,(nn)"});
-    cpu.registers.af.a = memory.read(read_16bit(cpu, memory));
+    cpu.registers.af.bytes.a = memory.read(read_16bit(cpu, memory));
+}
+pub fn ldh_a_nn(_: *Cpu, _: *Memory) void {
+    std.debug.print("RUN OPCODE: {s}\n", .{"LDH A,(n)"});
 }
 pub fn ld_a_from_c(cpu: *Cpu, memory: *Memory) void {
     std.debug.print("RUN OPCODE: {s}\n", .{"LD A,(C)"});
