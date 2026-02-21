@@ -43,6 +43,7 @@ pub const Memory = struct {
             MemoryMap.IO.start...MemoryMap.IO.end => 0x00,
             MemoryMap.HRAM.start...MemoryMap.HRAM.end => self.readHram(address),
             MemoryMap.IE => 0x00,
+            else => 0x00,
         };
     }
 

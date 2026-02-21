@@ -1,5 +1,5 @@
 const std = @import("std");
-const Memory = @import("memory.zig").Memory;
+const Memory = @import("../memory.zig").Memory;
 
 pub const Flags = packed struct(u8) {
     zerobits: u4 = 0x00,
@@ -54,4 +54,11 @@ pub const Registers = packed struct(u96) {
 
 pub const Cpu = struct {
     registers: Registers = .{},
+
+    pub fn fetch(self: *Cpu, memory: *Memory) u8 {
+        const opcode = memory.read(self.registers.pc);
+        std.debug.print("ROM[0x{X:0<4}]: 0x{X:0<2}\n", .{ self.registers.pc, opcode });
+        self.registers.pc += 0x0001;
+        return opcode;
+    }
 };

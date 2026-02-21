@@ -25,6 +25,7 @@ pub const Cartridge = struct {
         self.rom = buffer;
         self.parseCartridgeHeader();
 
+        std.debug.print("ROM[0x0100]: 0x{X}\n", .{self.rom[0x0100]});
         std.debug.print("ROM Size: {d} bytes\n", .{self.rom.len});
     }
 

@@ -1,5 +1,5 @@
 const std = @import("std");
-const Cpu = @import("cpu.zig").Cpu;
+const Cpu = @import("cpu/cpu.zig").Cpu;
 const Memory = @import("memory.zig").Memory;
 
 pub const GameBoy = struct {
