@@ -412,11 +412,20 @@ pub fn ld_nn_a(cpu: *Cpu, memory: *Memory) void {
     const address = read_16bit(cpu, memory);
     memory.write(address, cpu.registers.af.bytes.a);
 }
-pub fn ldh_nn_a(_: *Cpu, _: *Memory) void {
+pub fn ldh_nn_a(cpu: *Cpu, memory: *Memory) void {
     std.debug.print("RUN OPCODE: {s}\n", .{"LDH (n),A"});
+    const n: u8 = read_8bit(cpu, memory);
+    const addr: u16 = IO_BASE + @as(u16, n);
+    const val: u8 = cpu.registers.af.bytes.a;
+    std.debug.print("LDH write addr=0x{X:0>4} n=0x{X:0>2} val=0x{X:0>2} '{c}'\n", .{ addr, n, val, val });
+    memory.write(addr, val);
 }
-pub fn ld_ff00_c_a(_: *Cpu, _: *Memory) void {
+pub fn ld_ff00_c_a(cpu: *Cpu, memory: *Memory) void {
     std.debug.print("RUN OPCODE: {s}\n", .{"LD (C),A"});
+    const addr: u16 = IO_BASE + @as(u16, cpu.registers.bc.bytes.c);
+    const val: u8 = cpu.registers.af.bytes.a;
+    std.debug.print("LD (C) write addr=0x{X:0>4} c=0x{X:0>2} val=0x{X:0>2} '{c}'\n", .{ addr, cpu.registers.bc.bytes.c, val, val });
+    memory.write(addr, val);
 }
 pub fn ld_a_nn(cpu: *Cpu, memory: *Memory) void {
     std.debug.print("RUN OPCODE: {s}\n", .{"LD A,(nn)"});
@@ -814,39 +823,93 @@ pub fn cp_n(_: *Cpu, _: *Memory) void {
 // Jump (JP / JR)
 // ============================================================================
 
-pub fn jp_nn(_: *Cpu, _: *Memory) void {
+pub fn jp_nn(cpu: *Cpu, memory: *Memory) void {
     std.debug.print("RUN OPCODE: {s}\n", .{"JP nn"});
+    cpu.registers.pc = read_16bit(cpu, memory);
 }
-pub fn jp_nz_nn(_: *Cpu, _: *Memory) void {
+pub fn jp_nz_nn(cpu: *Cpu, memory: *Memory) void {
     std.debug.print("RUN OPCODE: {s}\n", .{"JP NZ,nn"});
+    const address = read_16bit(cpu, memory);
+    if (cpu.registers.af.bytes.f.z == 0) {
+        cpu.registers.pc = address;
+    }
 }
-pub fn jp_z_nn(_: *Cpu, _: *Memory) void {
+pub fn jp_z_nn(cpu: *Cpu, memory: *Memory) void {
     std.debug.print("RUN OPCODE: {s}\n", .{"JP Z,nn"});
+    const address = read_16bit(cpu, memory);
+    if (cpu.registers.af.bytes.f.z == 1) {
+        cpu.registers.pc = address;
+    }
 }
-pub fn jp_nc_nn(_: *Cpu, _: *Memory) void {
+pub fn jp_nc_nn(cpu: *Cpu, memory: *Memory) void {
     std.debug.print("RUN OPCODE: {s}\n", .{"JP NC,nn"});
+    const address = read_16bit(cpu, memory);
+    if (cpu.registers.af.bytes.f.c == 0) {
+        cpu.registers.pc = address;
+    }
 }
-pub fn jp_c_nn(_: *Cpu, _: *Memory) void {
+pub fn jp_c_nn(cpu: *Cpu, memory: *Memory) void {
     std.debug.print("RUN OPCODE: {s}\n", .{"JP C,nn"});
+    const address = read_16bit(cpu, memory);
+    if (cpu.registers.af.bytes.f.c == 1) {
+        cpu.registers.pc = address;
+    }
 }
-pub fn jp_hl(_: *Cpu, _: *Memory) void {
+pub fn jp_hl(cpu: *Cpu, _: *Memory) void {
     std.debug.print("RUN OPCODE: {s}\n", .{"JP (HL)"});
+    cpu.registers.pc = cpu.registers.hl.pair;
 }
 
-pub fn jr_n(_: *Cpu, _: *Memory) void {
+pub fn jr_n(cpu: *Cpu, memory: *Memory) void {
     std.debug.print("RUN OPCODE: {s}\n", .{"JR n"});
+    const offset_u8 = read_8bit(cpu, memory);
+    const offset_i8: i8 = @bitCast(offset_u8); // Reinterpret bits as signed
+    const offset_i16: i16 = offset_i8;
+    const offset_u16: u16 = @bitCast(offset_i16);
+    cpu.registers.pc +%= offset_u16;
 }
-pub fn jr_nz_n(_: *Cpu, _: *Memory) void {
+pub fn jr_nz_n(cpu: *Cpu, memory: *Memory) void {
     std.debug.print("RUN OPCODE: {s}\n", .{"JR NZ,n"});
+    const offset_u8 = read_8bit(cpu, memory);
+    const offset_i8: i8 = @bitCast(offset_u8); // Reinterpret bits as signed
+    const offset_i16: i16 = offset_i8;
+    const offset_u16: u16 = @bitCast(offset_i16);
+
+    if (cpu.registers.af.bytes.f.z == 0) {
+        cpu.registers.pc +%= offset_u16;
+    }
 }
-pub fn jr_z_n(_: *Cpu, _: *Memory) void {
+pub fn jr_z_n(cpu: *Cpu, memory: *Memory) void {
     std.debug.print("RUN OPCODE: {s}\n", .{"JR Z,n"});
+    const offset_u8 = read_8bit(cpu, memory);
+    const offset_i8: i8 = @bitCast(offset_u8); // Reinterpret bits as signed
+    const offset_i16: i16 = offset_i8;
+    const offset_u16: u16 = @bitCast(offset_i16);
+    if (cpu.registers.af.bytes.f.z == 1) {
+        cpu.registers.pc +%= offset_u16;
+    }
 }
-pub fn jr_nc_n(_: *Cpu, _: *Memory) void {
+pub fn jr_nc_n(cpu: *Cpu, memory: *Memory) void {
     std.debug.print("RUN OPCODE: {s}\n", .{"JR NC,n"});
+    const offset_u8 = read_8bit(cpu, memory);
+    const offset_i8: i8 = @bitCast(offset_u8); // Reinterpret bits as signed
+    const offset_i16: i16 = offset_i8;
+    const offset_u16: u16 = @bitCast(offset_i16);
+
+    if (cpu.registers.af.bytes.f.c == 0) {
+        cpu.registers.pc +%= offset_u16;
+    }
 }
-pub fn jr_c_n(_: *Cpu, _: *Memory) void {
+pub fn jr_c_n(cpu: *Cpu, memory: *Memory) void {
     std.debug.print("RUN OPCODE: {s}\n", .{"JR C,n"});
+    const offset_u8 = read_8bit(cpu, memory);
+    const offset_i8: i8 = @bitCast(offset_u8); // Reinterpret bits as signed
+    const offset_i16: i16 = offset_i8;
+    const offset_u16: u16 = @bitCast(offset_i16);
+
+    if (cpu.registers.af.bytes.f.c == 1) {
+        cpu.registers.pc +%= offset_u16;
+    }
 }
 
 // ============================================================================

@@ -4,6 +4,9 @@ const Cartridge = @import("cartridge.zig").Cartridge;
 
 const MEMORY_SIZE = 0x10000;
 
+const SB_ADDR: u16 = 0xFF01;
+const SC_ADDR: u16 = 0xFF02;
+
 pub const MemoryMap = struct {
     pub const ROM0: AddressRange = .{ .start = 0x0000, .end = 0x3FFF };
     pub const ROM1_BANKED: AddressRange = .{ .start = 0x4000, .end = 0x7FFF };
@@ -27,6 +30,7 @@ pub const Memory = struct {
     vram: [0x2000]u8 = .{0} ** 0x2000,
     wram: [0x2000]u8 = .{0} ** 0x2000,
     hram: [0x007F]u8 = .{0} ** 0x007F,
+    io: [0x0080]u8 = .{0} ** 0x0080,
     cartridge: Cartridge = .{},
     boot_rom_enabled: bool = true,
 
@@ -40,7 +44,7 @@ pub const Memory = struct {
             MemoryMap.WRAM1.start...MemoryMap.WRAM1.end => self.readWram(address),
             MemoryMap.ECHO_RAM.start...MemoryMap.ECHO_RAM.end => self.readWram(address - 0x2000),
             MemoryMap.OAM.start...MemoryMap.OAM.end => 0x00,
-            MemoryMap.IO.start...MemoryMap.IO.end => 0x00,
+            MemoryMap.IO.start...MemoryMap.IO.end => self.readIo(address),
             MemoryMap.HRAM.start...MemoryMap.HRAM.end => self.readHram(address),
             MemoryMap.IE => 0x00,
             else => 0x00,
@@ -52,12 +56,14 @@ pub const Memory = struct {
             MemoryMap.ROM0.start...MemoryMap.ROM0.end => return,
             MemoryMap.ROM1_BANKED.start...MemoryMap.ROM1_BANKED.end => return,
             MemoryMap.VRAM.start...MemoryMap.VRAM.end => self.writeVram(address, value),
-            MemoryMap.SRAM.start...MemoryMap.SRAM.end => {},
+            MemoryMap.SRAM.start...MemoryMap.SRAM.end => {
+                // Cartridge SRAM not implemented — ignore writes for now
+            },
             MemoryMap.WRAM0.start...MemoryMap.WRAM0.end => self.writeWram(address, value),
             MemoryMap.WRAM1.start...MemoryMap.WRAM1.end => self.writeWram(address, value),
             MemoryMap.ECHO_RAM.start...MemoryMap.ECHO_RAM.end => self.writeWram(address - 0x2000, value),
             MemoryMap.OAM.start...MemoryMap.OAM.end => {},
-            MemoryMap.IO.start...MemoryMap.IO.end => {},
+            MemoryMap.IO.start...MemoryMap.IO.end => self.writeIo(address, value),
             MemoryMap.HRAM.start...MemoryMap.HRAM.end => self.writeHram(address, value),
             MemoryMap.IE => {},
             else => {},
@@ -86,6 +92,36 @@ pub const Memory = struct {
 
     fn writeHram(self: *Memory, address: u16, value: u8) void {
         self.hram[address - 0xFF80] = value;
+    }
+
+    fn readIo(self: *Memory, address: u16) u8 {
+        return self.io[address - 0xFF00];
+    }
+
+    fn writeIo(self: *Memory, address: u16, value: u8) void {
+        std.debug.print("SB_WRITE: 0x{X:0>4}\n", .{address});
+        const idx: usize = @as(usize, address - 0xFF00);
+        // store the value first
+        self.io[idx] = value;
+
+        const SB_IDX: usize = @as(usize, SB_ADDR - 0xFF00);
+        const SC_IDX: usize = @as(usize, SC_ADDR - 0xFF00);
+
+        if (address == SB_ADDR) {
+            // Log the raw byte and a printable character if available
+            std.debug.print("SB write: {u} '{c}'\n", .{ value, value });
+        } else if (address == SC_ADDR) {
+            // Serial transfer start
+            if ((value & 0x80) != 0) {
+                const sb_val: u8 = self.io[SB_IDX];
+                // print the byte as a single character
+                std.debug.print("{c}", .{sb_val});
+                // if newline, also print newline for clarity
+                if (sb_val == 0x0A) std.debug.print("\n", .{});
+                // clear the start bit to indicate transfer complete
+                self.io[SC_IDX] = self.io[SC_IDX] & ~@as(u8, 0x80);
+            }
+        }
     }
 
     pub fn load(self: *Memory, allocator: std.mem.Allocator, filename: []const u8) !void {

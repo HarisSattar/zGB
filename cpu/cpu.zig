@@ -57,9 +57,11 @@ pub const Cpu = struct {
     registers: Registers = .{},
 
     pub fn step(self: *Cpu, memory: *Memory) void {
+        // std.debug.print("PC=0x{X:0>4}: ", .{self.registers.pc});
         const opcode = memory.read(self.registers.pc);
         self.increment_pc();
         self.execute(opcode, memory);
+        // std.debug.print("{f}\n", .{self.registers});
     }
 
     pub fn increment_pc(self: *Cpu) void {

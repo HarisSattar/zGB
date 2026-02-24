@@ -17,7 +17,9 @@ pub const Cartridge = struct {
     }
 
     pub fn load(self: *Cartridge, allocator: std.mem.Allocator, filename: []const u8) !void {
-        const file = try std.fs.cwd().openFile(filename, .{});
+        var roms_dir = try std.fs.cwd().openDir("roms", .{});
+        defer roms_dir.close();
+        const file = try roms_dir.openFile(filename, .{});
         defer file.close();
 
         const buffer = try file.readToEndAlloc(allocator, std.math.maxInt(usize));
