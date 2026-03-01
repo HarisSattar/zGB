@@ -6,6 +6,11 @@ const MEMORY_SIZE = 0x10000;
 
 const SB_ADDR: u16 = 0xFF01;
 const SC_ADDR: u16 = 0xFF02;
+const DIV_ADDR: u16 = 0xFF04;
+const TIMA_ADDR: u16 = 0xFF05;
+const TMA_ADDR: u16 = 0xFF06;
+const TAC_ADDR: u16 = 0xFF07;
+const IF_ADDR: u16 = 0xFF0F;
 
 pub const MemoryMap = struct {
     pub const ROM0: AddressRange = .{ .start = 0x0000, .end = 0x3FFF };
@@ -31,6 +36,13 @@ pub const Memory = struct {
     wram: [0x2000]u8 = .{0} ** 0x2000,
     hram: [0x007F]u8 = .{0} ** 0x007F,
     io: [0x0080]u8 = .{0} ** 0x0080,
+    ie: u8 = 0,
+    div_counter: u16 = 0,
+    tima_counter: u16 = 0,
+    serial_buffer: [1024]u8 = .{0} ** 1024,
+    serial_len: usize = 0,
+    serial_test_done: bool = false,
+    serial_test_passed: bool = false,
     cartridge: Cartridge = .{},
     boot_rom_enabled: bool = true,
 
@@ -46,7 +58,7 @@ pub const Memory = struct {
             MemoryMap.OAM.start...MemoryMap.OAM.end => 0x00,
             MemoryMap.IO.start...MemoryMap.IO.end => self.readIo(address),
             MemoryMap.HRAM.start...MemoryMap.HRAM.end => self.readHram(address),
-            MemoryMap.IE => 0x00,
+            MemoryMap.IE => self.ie,
             else => 0x00,
         };
     }
@@ -65,7 +77,7 @@ pub const Memory = struct {
             MemoryMap.OAM.start...MemoryMap.OAM.end => {},
             MemoryMap.IO.start...MemoryMap.IO.end => self.writeIo(address, value),
             MemoryMap.HRAM.start...MemoryMap.HRAM.end => self.writeHram(address, value),
-            MemoryMap.IE => {},
+            MemoryMap.IE => self.ie = value,
             else => {},
         }
     }
@@ -99,29 +111,110 @@ pub const Memory = struct {
     }
 
     fn writeIo(self: *Memory, address: u16, value: u8) void {
-        std.debug.print("SB_WRITE: 0x{X:0>4}\n", .{address});
         const idx: usize = @as(usize, address - 0xFF00);
-        // store the value first
         self.io[idx] = value;
 
         const SB_IDX: usize = @as(usize, SB_ADDR - 0xFF00);
         const SC_IDX: usize = @as(usize, SC_ADDR - 0xFF00);
 
-        if (address == SB_ADDR) {
-            // Log the raw byte and a printable character if available
-            std.debug.print("SB write: {u} '{c}'\n", .{ value, value });
-        } else if (address == SC_ADDR) {
-            // Serial transfer start
-            if ((value & 0x80) != 0) {
-                const sb_val: u8 = self.io[SB_IDX];
-                // print the byte as a single character
-                std.debug.print("{c}", .{sb_val});
-                // if newline, also print newline for clarity
-                if (sb_val == 0x0A) std.debug.print("\n", .{});
-                // clear the start bit to indicate transfer complete
-                self.io[SC_IDX] = self.io[SC_IDX] & ~@as(u8, 0x80);
+        if (address == SC_ADDR and value == 0x81) {
+            const sb_val: u8 = self.io[SB_IDX];
+            self.appendSerialByte(sb_val);
+            self.io[SC_IDX] = 0x01;
+        } else if (address == DIV_ADDR) {
+            self.io[idx] = 0;
+            self.div_counter = 0;
+        }
+    }
+
+    pub fn tickTimers(self: *Memory, cycles: u16) void {
+        const div_idx: usize = @as(usize, DIV_ADDR - 0xFF00);
+        const tima_idx: usize = @as(usize, TIMA_ADDR - 0xFF00);
+        const tma_idx: usize = @as(usize, TMA_ADDR - 0xFF00);
+        const tac_idx: usize = @as(usize, TAC_ADDR - 0xFF00);
+        const if_idx: usize = @as(usize, IF_ADDR - 0xFF00);
+
+        self.div_counter +%= cycles;
+        while (self.div_counter >= 256) {
+            self.div_counter -%= 256;
+            self.io[div_idx] +%= 1;
+        }
+
+        const tac = self.io[tac_idx];
+        if ((tac & 0x04) == 0) {
+            return;
+        }
+
+        const period: u16 = switch (tac & 0x03) {
+            0x00 => 1024,
+            0x01 => 16,
+            0x02 => 64,
+            else => 256,
+        };
+
+        self.tima_counter +%= cycles;
+        while (self.tima_counter >= period) {
+            self.tima_counter -%= period;
+
+            if (self.io[tima_idx] == 0xFF) {
+                self.io[tima_idx] = self.io[tma_idx];
+                self.io[if_idx] |= 0x04;
+            } else {
+                self.io[tima_idx] +%= 1;
             }
         }
+    }
+
+    fn appendSerialByte(self: *Memory, b: u8) void {
+        if (b == '\r') {
+            return;
+        }
+
+        if (b == '\n' or b == 0x00) {
+            self.flushSerialBuffer();
+            return;
+        }
+
+        if (b < 0x20 or b > 0x7E) {
+            return;
+        }
+
+        if (self.serial_len >= self.serial_buffer.len - 1) {
+            self.flushSerialBuffer();
+        }
+
+        self.serial_buffer[self.serial_len] = b;
+        self.serial_len += 1;
+    }
+
+    pub fn flushSerialBuffer(self: *Memory) void {
+        if (self.serial_len == 0) return;
+        const line = self.serial_buffer[0..self.serial_len];
+
+        if (std.mem.indexOf(u8, line, "Passed") != null) {
+            self.serial_test_done = true;
+            self.serial_test_passed = true;
+        }
+        if (std.mem.indexOf(u8, line, "I5:ok") != null) {
+            self.serial_test_done = true;
+            self.serial_test_passed = true;
+        }
+        if (std.mem.indexOf(u8, line, "Failed") != null) {
+            self.serial_test_done = true;
+            self.serial_test_passed = false;
+        }
+
+        // const stdout = std.fs.File.stdout().deprecatedWriter();
+        std.debug.print("{s}\n", .{line});
+        self.serial_len = 0;
+    }
+
+    pub fn isSerialTestDone(self: *const Memory) bool {
+        return self.serial_test_done;
+    }
+
+    pub fn didSerialTestPass(self: *const Memory) bool {
+        return self.serial_test_passed;
     }
 
     pub fn load(self: *Memory, allocator: std.mem.Allocator, filename: []const u8) !void {

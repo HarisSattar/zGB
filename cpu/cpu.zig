@@ -2,6 +2,9 @@ const std = @import("std");
 const Memory = @import("../memory.zig").Memory;
 const ops = @import("ops.zig");
 
+const IE_ADDR: u16 = 0xFFFF;
+const IF_ADDR: u16 = 0xFF0F;
+
 pub const Flags = packed struct(u8) {
     zerobits: u4 = 0x00,
     c: u1,
@@ -56,13 +59,76 @@ pub const Registers = packed struct(u96) {
 pub const Cpu = struct {
     registers: Registers = .{},
     ime: bool = false,
+    ime_enable_pending: bool = false,
+    halted: bool = false,
 
     pub fn step(self: *Cpu, memory: *Memory) void {
-        // std.debug.print("PC=0x{X:0>4}: ", .{self.registers.pc});
+        defer memory.tickTimers(8);
+
+        const pending = self.get_pending_interrupts(memory);
+
+        if (self.halted) {
+            if (pending == 0) return;
+            self.halted = false;
+        }
+
+        if (self.ime and pending != 0) {
+            self.service_interrupt(memory, pending);
+            return;
+        }
+
+        const apply_ime_after_instruction = self.ime_enable_pending;
+
         const opcode = memory.read(self.registers.pc);
         self.increment_pc();
         self.execute(opcode, memory);
-        // std.debug.print("{f}\n", .{self.registers});
+
+        if (apply_ime_after_instruction) {
+            self.ime = true;
+            self.ime_enable_pending = false;
+        }
+    }
+
+    fn get_pending_interrupts(self: *Cpu, memory: *Memory) u8 {
+        _ = self;
+        const ie = memory.read(IE_ADDR);
+        const iff = memory.read(IF_ADDR);
+        return ie & iff & 0x1F;
+    }
+
+    fn service_interrupt(self: *Cpu, memory: *Memory, pending: u8) void {
+        const index: u8 = if ((pending & 0x01) != 0)
+            0
+        else if ((pending & 0x02) != 0)
+            1
+        else if ((pending & 0x04) != 0)
+            2
+        else if ((pending & 0x08) != 0)
+            3
+        else
+            4;
+
+        const vector: u16 = switch (index) {
+            0 => 0x0040,
+            1 => 0x0048,
+            2 => 0x0050,
+            3 => 0x0058,
+            else => 0x0060,
+        };
+
+        const clear_mask: u8 = ~(@as(u8, 1) << @as(u3, @truncate(index)));
+        const iff = memory.read(IF_ADDR);
+        memory.write(IF_ADDR, iff & clear_mask);
+
+        self.ime = false;
+        self.ime_enable_pending = false;
+
+        self.registers.sp -%= 1;
+        memory.write(self.registers.sp, @truncate(self.registers.pc >> 8));
+        self.registers.sp -%= 1;
+        memory.write(self.registers.sp, @truncate(self.registers.pc));
+
+        self.registers.pc = vector;
     }
 
     pub fn increment_pc(self: *Cpu) void {
