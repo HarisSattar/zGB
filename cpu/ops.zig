@@ -548,8 +548,10 @@ pub fn ld_hl_sp_n(cpu: *Cpu, memory: *Memory) void {
 
 pub fn inc_b(cpu: *Cpu, _: *Memory) void {
     // std.debug.print("RUN OPCODE: {s}\n", .{"INC B"});
-    cpu.registers.bc.bytes.b +%= 1;
-    cpu.registers.af.bytes.f = .{ .z = if (cpu.registers.bc.bytes.b == 0) 1 else 0, .n = 0, .h = if ((cpu.registers.bc.bytes.b & 0x0F) + 1 > 0x0F) 1 else 0, .c = cpu.registers.af.bytes.f.c };
+    const before = cpu.registers.bc.bytes.b;
+    const result = before +% 1;
+    cpu.registers.bc.bytes.b = result;
+    cpu.registers.af.bytes.f = .{ .z = if (result == 0) 1 else 0, .n = 0, .h = if ((before & 0x0F) == 0x0F) 1 else 0, .c = cpu.registers.af.bytes.f.c };
 }
 pub fn dec_b(cpu: *Cpu, _: *Memory) void {
     // std.debug.print("RUN OPCODE: {s}\n", .{"DEC B"});
@@ -558,8 +560,10 @@ pub fn dec_b(cpu: *Cpu, _: *Memory) void {
 }
 pub fn inc_c(cpu: *Cpu, _: *Memory) void {
     // std.debug.print("RUN OPCODE: {s}\n", .{"INC C"});
-    cpu.registers.bc.bytes.c +%= 1;
-    cpu.registers.af.bytes.f = .{ .z = if (cpu.registers.bc.bytes.c == 0) 1 else 0, .n = 0, .h = if ((cpu.registers.bc.bytes.c & 0x0F) + 1 > 0x0F) 1 else 0, .c = cpu.registers.af.bytes.f.c };
+    const before = cpu.registers.bc.bytes.c;
+    const result = before +% 1;
+    cpu.registers.bc.bytes.c = result;
+    cpu.registers.af.bytes.f = .{ .z = if (result == 0) 1 else 0, .n = 0, .h = if ((before & 0x0F) == 0x0F) 1 else 0, .c = cpu.registers.af.bytes.f.c };
 }
 pub fn dec_c(cpu: *Cpu, _: *Memory) void {
     // std.debug.print("RUN OPCODE: {s}\n", .{"DEC C"});
@@ -568,8 +572,10 @@ pub fn dec_c(cpu: *Cpu, _: *Memory) void {
 }
 pub fn inc_d(cpu: *Cpu, _: *Memory) void {
     // std.debug.print("RUN OPCODE: {s}\n", .{"INC D"});
-    cpu.registers.de.bytes.d +%= 1;
-    cpu.registers.af.bytes.f = .{ .z = if (cpu.registers.de.bytes.d == 0) 1 else 0, .n = 0, .h = if ((cpu.registers.de.bytes.d & 0x0F) + 1 > 0x0F) 1 else 0, .c = cpu.registers.af.bytes.f.c };
+    const before = cpu.registers.de.bytes.d;
+    const result = before +% 1;
+    cpu.registers.de.bytes.d = result;
+    cpu.registers.af.bytes.f = .{ .z = if (result == 0) 1 else 0, .n = 0, .h = if ((before & 0x0F) == 0x0F) 1 else 0, .c = cpu.registers.af.bytes.f.c };
 }
 pub fn dec_d(cpu: *Cpu, _: *Memory) void {
     // std.debug.print("RUN OPCODE: {s}\n", .{"DEC D"});
@@ -578,8 +584,10 @@ pub fn dec_d(cpu: *Cpu, _: *Memory) void {
 }
 pub fn inc_e(cpu: *Cpu, _: *Memory) void {
     // std.debug.print("RUN OPCODE: {s}\n", .{"INC E"});
-    cpu.registers.de.bytes.e +%= 1;
-    cpu.registers.af.bytes.f = .{ .z = if (cpu.registers.de.bytes.e == 0) 1 else 0, .n = 0, .h = if ((cpu.registers.de.bytes.e & 0x0F) + 1 > 0x0F) 1 else 0, .c = cpu.registers.af.bytes.f.c };
+    const before = cpu.registers.de.bytes.e;
+    const result = before +% 1;
+    cpu.registers.de.bytes.e = result;
+    cpu.registers.af.bytes.f = .{ .z = if (result == 0) 1 else 0, .n = 0, .h = if ((before & 0x0F) == 0x0F) 1 else 0, .c = cpu.registers.af.bytes.f.c };
 }
 pub fn dec_e(cpu: *Cpu, _: *Memory) void {
     // std.debug.print("RUN OPCODE: {s}\n", .{"DEC E"});
@@ -588,8 +596,10 @@ pub fn dec_e(cpu: *Cpu, _: *Memory) void {
 }
 pub fn inc_h(cpu: *Cpu, _: *Memory) void {
     // std.debug.print("RUN OPCODE: {s}\n", .{"INC H"});
-    cpu.registers.hl.bytes.h +%= 1;
-    cpu.registers.af.bytes.f = .{ .z = if (cpu.registers.hl.bytes.h == 0) 1 else 0, .n = 0, .h = if ((cpu.registers.hl.bytes.h & 0x0F) + 1 > 0x0F) 1 else 0, .c = cpu.registers.af.bytes.f.c };
+    const before = cpu.registers.hl.bytes.h;
+    const result = before +% 1;
+    cpu.registers.hl.bytes.h = result;
+    cpu.registers.af.bytes.f = .{ .z = if (result == 0) 1 else 0, .n = 0, .h = if ((before & 0x0F) == 0x0F) 1 else 0, .c = cpu.registers.af.bytes.f.c };
 }
 pub fn dec_h(cpu: *Cpu, _: *Memory) void {
     // std.debug.print("RUN OPCODE: {s}\n", .{"DEC H"});
@@ -598,8 +608,10 @@ pub fn dec_h(cpu: *Cpu, _: *Memory) void {
 }
 pub fn inc_l(cpu: *Cpu, _: *Memory) void {
     // std.debug.print("RUN OPCODE: {s}\n", .{"INC L"});
-    cpu.registers.hl.bytes.l +%= 1;
-    cpu.registers.af.bytes.f = .{ .z = if (cpu.registers.hl.bytes.l == 0) 1 else 0, .n = 0, .h = if ((cpu.registers.hl.bytes.l & 0x0F) + 1 > 0x0F) 1 else 0, .c = cpu.registers.af.bytes.f.c };
+    const before = cpu.registers.hl.bytes.l;
+    const result = before +% 1;
+    cpu.registers.hl.bytes.l = result;
+    cpu.registers.af.bytes.f = .{ .z = if (result == 0) 1 else 0, .n = 0, .h = if ((before & 0x0F) == 0x0F) 1 else 0, .c = cpu.registers.af.bytes.f.c };
 }
 pub fn dec_l(cpu: *Cpu, _: *Memory) void {
     // std.debug.print("RUN OPCODE: {s}\n", .{"DEC L"});
@@ -608,8 +620,10 @@ pub fn dec_l(cpu: *Cpu, _: *Memory) void {
 }
 pub fn inc_a(cpu: *Cpu, _: *Memory) void {
     // std.debug.print("RUN OPCODE: {s}\n", .{"INC A"});
-    cpu.registers.af.bytes.a +%= 1;
-    cpu.registers.af.bytes.f = .{ .z = if (cpu.registers.af.bytes.a == 0) 1 else 0, .n = 0, .h = if ((cpu.registers.af.bytes.a & 0x0F) + 1 > 0x0F) 1 else 0, .c = cpu.registers.af.bytes.f.c };
+    const before = cpu.registers.af.bytes.a;
+    const result = before +% 1;
+    cpu.registers.af.bytes.a = result;
+    cpu.registers.af.bytes.f = .{ .z = if (result == 0) 1 else 0, .n = 0, .h = if ((before & 0x0F) == 0x0F) 1 else 0, .c = cpu.registers.af.bytes.f.c };
 }
 pub fn dec_a(cpu: *Cpu, _: *Memory) void {
     // std.debug.print("RUN OPCODE: {s}\n", .{"DEC A"});
@@ -620,9 +634,9 @@ pub fn inc_hli(cpu: *Cpu, memory: *Memory) void {
     // std.debug.print("RUN OPCODE: {s}\n", .{"INC (HL)"});
     const hl = cpu.registers.hl.pair;
     const value = memory.read(hl);
-    memory.write(hl, value + 1);
+    memory.write(hl, value +% 1);
     cpu.registers.af.bytes.f = .{
-        .z = if (value + 1 == 0) 1 else 0,
+        .z = if (value +% 1 == 0) 1 else 0,
         .n = 0,
         .h = if ((value & 0x0F) + 1 > 0x0F) 1 else 0,
         .c = cpu.registers.af.bytes.f.c,
@@ -632,9 +646,9 @@ pub fn dec_hli(cpu: *Cpu, memory: *Memory) void {
     // std.debug.print("RUN OPCODE: {s}\n", .{"DEC (HL)"});
     const hl = cpu.registers.hl.pair;
     const value = memory.read(hl);
-    memory.write(hl, value - 1);
+    memory.write(hl, value -% 1);
     cpu.registers.af.bytes.f = .{
-        .z = if (value - 1 == 0) 1 else 0,
+        .z = if (value -% 1 == 0) 1 else 0,
         .n = 1,
         .h = if ((value & 0x0F) == 0x00) 1 else 0,
         .c = cpu.registers.af.bytes.f.c,

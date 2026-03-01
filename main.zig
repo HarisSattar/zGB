@@ -12,12 +12,12 @@ pub fn main() !void {
 
     std.debug.print("{f}\n", .{gameBoy.cpu.registers});
 
-    try gameBoy.load(allocator, "cpu_instrs.gb");
+    try gameBoy.load(allocator, "mem_timing.gb");
     // try gameBoy.load(allocator, "tetris.gb");
 
     std.debug.print("Cartridge Details:\n{f}\n", .{gameBoy.memory.cartridge});
 
-    runUntilSerialTestDone(&gameBoy, 2_000_000_000);
+    runUntilSerialTestDone(&gameBoy);
     gameBoy.memory.flushSerialBuffer();
 
     if (gameBoy.memory.isSerialTestDone()) {
@@ -33,9 +33,10 @@ pub fn main() !void {
     try gameBoy.deinit(allocator);
 }
 
-pub fn runUntilSerialTestDone(gameBoy: *GameBoy, max_steps: usize) void {
+pub fn runUntilSerialTestDone(gameBoy: *GameBoy) void {
     var i: usize = 0;
-    while (i < max_steps) : (i += 1) {
+
+    while (true) : (i += 1) {
         if (gameBoy.memory.isSerialTestDone()) break;
         const pc_before = gameBoy.cpu.registers.pc;
         const op: u8 = gameBoy.memory.read(pc_before);

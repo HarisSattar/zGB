@@ -63,30 +63,74 @@ pub const Cpu = struct {
     halted: bool = false,
 
     pub fn step(self: *Cpu, memory: *Memory) void {
-        defer memory.tickTimers(8);
-
         const pending = self.get_pending_interrupts(memory);
 
         if (self.halted) {
-            if (pending == 0) return;
+            if (pending == 0) {
+                memory.tickTimers(4);
+                return;
+            }
             self.halted = false;
         }
 
         if (self.ime and pending != 0) {
             self.service_interrupt(memory, pending);
+            memory.tickTimers(20);
             return;
         }
 
         const apply_ime_after_instruction = self.ime_enable_pending;
 
+        const pc_before = self.registers.pc;
         const opcode = memory.read(self.registers.pc);
+        const conditional_taken = conditional_branch_taken(opcode, self.registers.af.bytes.f);
         self.increment_pc();
         self.execute(opcode, memory);
+
+        const pc_after = self.registers.pc;
+        const expected_next_pc = pc_before +% instruction_length(opcode);
+        const branch_taken = if (is_conditional_branch(opcode)) conditional_taken else pc_after != expected_next_pc;
+
+        const cycles_t: u16 = instruction_cycles_t(opcode, branch_taken, pc_after, expected_next_pc, memory);
+        memory.tickTimers(cycles_t);
 
         if (apply_ime_after_instruction) {
             self.ime = true;
             self.ime_enable_pending = false;
         }
+    }
+
+    fn is_conditional_branch(opcode: u8) bool {
+        return switch (opcode) {
+            0x20,
+            0x28,
+            0x30,
+            0x38,
+            0xC0,
+            0xC2,
+            0xC4,
+            0xC8,
+            0xCA,
+            0xCC,
+            0xD0,
+            0xD2,
+            0xD4,
+            0xD8,
+            0xDA,
+            0xDC,
+            => true,
+            else => false,
+        };
+    }
+
+    fn conditional_branch_taken(opcode: u8, flags: Flags) bool {
+        return switch (opcode) {
+            0x20, 0xC0, 0xC2, 0xC4 => flags.z == 0,
+            0x28, 0xC8, 0xCA, 0xCC => flags.z == 1,
+            0x30, 0xD0, 0xD2, 0xD4 => flags.c == 0,
+            0x38, 0xD8, 0xDA, 0xDC => flags.c == 1,
+            else => false,
+        };
     }
 
     fn get_pending_interrupts(self: *Cpu, memory: *Memory) u8 {
@@ -129,6 +173,221 @@ pub const Cpu = struct {
         memory.write(self.registers.sp, @truncate(self.registers.pc));
 
         self.registers.pc = vector;
+    }
+
+    fn instruction_length(opcode: u8) u16 {
+        return switch (opcode) {
+            0x01,
+            0x08,
+            0x11,
+            0x21,
+            0x31,
+            0xC2,
+            0xC3,
+            0xC4,
+            0xCA,
+            0xCC,
+            0xCD,
+            0xD2,
+            0xD4,
+            0xDA,
+            0xDC,
+            0xEA,
+            0xFA,
+            => 3,
+
+            0x06,
+            0x0E,
+            0x10,
+            0x16,
+            0x18,
+            0x1E,
+            0x20,
+            0x26,
+            0x28,
+            0x2E,
+            0x30,
+            0x36,
+            0x38,
+            0x3E,
+            0xC6,
+            0xCB,
+            0xCE,
+            0xD6,
+            0xDE,
+            0xE0,
+            0xE6,
+            0xE8,
+            0xEE,
+            0xF0,
+            0xF6,
+            0xF8,
+            0xFE,
+            => 2,
+
+            else => 1,
+        };
+    }
+
+    fn instruction_cycles_t(opcode: u8, branch_taken: bool, pc_after: u16, expected_next_pc: u16, memory: *Memory) u16 {
+        _ = pc_after;
+        return switch (opcode) {
+            0x00 => 4,
+            0x01 => 12,
+            0x02 => 8,
+            0x03 => 8,
+            0x04 => 4,
+            0x05 => 4,
+            0x06 => 8,
+            0x07 => 4,
+            0x08 => 20,
+            0x09 => 8,
+            0x0A => 8,
+            0x0B => 8,
+            0x0C => 4,
+            0x0D => 4,
+            0x0E => 8,
+            0x0F => 4,
+
+            0x10 => 4,
+            0x11 => 12,
+            0x12 => 8,
+            0x13 => 8,
+            0x14 => 4,
+            0x15 => 4,
+            0x16 => 8,
+            0x17 => 4,
+            0x18 => 12,
+            0x19 => 8,
+            0x1A => 8,
+            0x1B => 8,
+            0x1C => 4,
+            0x1D => 4,
+            0x1E => 8,
+            0x1F => 4,
+
+            0x20 => if (branch_taken) 12 else 8,
+            0x21 => 12,
+            0x22 => 8,
+            0x23 => 8,
+            0x24 => 4,
+            0x25 => 4,
+            0x26 => 8,
+            0x27 => 4,
+            0x28 => if (branch_taken) 12 else 8,
+            0x29 => 8,
+            0x2A => 8,
+            0x2B => 8,
+            0x2C => 4,
+            0x2D => 4,
+            0x2E => 8,
+            0x2F => 4,
+
+            0x30 => if (branch_taken) 12 else 8,
+            0x31 => 12,
+            0x32 => 8,
+            0x33 => 8,
+            0x34 => 12,
+            0x35 => 12,
+            0x36 => 12,
+            0x37 => 4,
+            0x38 => if (branch_taken) 12 else 8,
+            0x39 => 8,
+            0x3A => 8,
+            0x3B => 8,
+            0x3C => 4,
+            0x3D => 4,
+            0x3E => 8,
+            0x3F => 4,
+
+            0x40...0x75, 0x77...0x7F => blk: {
+                const low: u8 = opcode & 0x07;
+                const high: u8 = (opcode >> 3) & 0x07;
+                if (low == 0x06 or high == 0x06) break :blk 8;
+                break :blk 4;
+            },
+            0x76 => 4,
+
+            0x80...0xBF => if ((opcode & 0x07) == 0x06) 8 else 4,
+
+            0xC0 => if (branch_taken) 20 else 8,
+            0xC1 => 12,
+            0xC2 => if (branch_taken) 16 else 12,
+            0xC3 => 16,
+            0xC4 => if (branch_taken) 24 else 12,
+            0xC5 => 16,
+            0xC6 => 8,
+            0xC7 => 16,
+            0xC8 => if (branch_taken) 20 else 8,
+            0xC9 => 16,
+            0xCA => if (branch_taken) 16 else 12,
+            0xCB => cb_cycles_t(memory, expected_next_pc),
+            0xCC => if (branch_taken) 24 else 12,
+            0xCD => 24,
+            0xCE => 8,
+            0xCF => 16,
+
+            0xD0 => if (branch_taken) 20 else 8,
+            0xD1 => 12,
+            0xD2 => if (branch_taken) 16 else 12,
+            0xD3 => 4,
+            0xD4 => if (branch_taken) 24 else 12,
+            0xD5 => 16,
+            0xD6 => 8,
+            0xD7 => 16,
+            0xD8 => if (branch_taken) 20 else 8,
+            0xD9 => 16,
+            0xDA => if (branch_taken) 16 else 12,
+            0xDB => 4,
+            0xDC => if (branch_taken) 24 else 12,
+            0xDD => 4,
+            0xDE => 8,
+            0xDF => 16,
+
+            0xE0 => 12,
+            0xE1 => 12,
+            0xE2 => 8,
+            0xE3 => 4,
+            0xE4 => 4,
+            0xE5 => 16,
+            0xE6 => 8,
+            0xE7 => 16,
+            0xE8 => 16,
+            0xE9 => 4,
+            0xEA => 16,
+            0xEB => 4,
+            0xEC => 4,
+            0xED => 4,
+            0xEE => 8,
+            0xEF => 16,
+
+            0xF0 => 12,
+            0xF1 => 12,
+            0xF2 => 8,
+            0xF3 => 4,
+            0xF4 => 4,
+            0xF5 => 16,
+            0xF6 => 8,
+            0xF7 => 16,
+            0xF8 => 12,
+            0xF9 => 8,
+            0xFA => 16,
+            0xFB => 4,
+            0xFC => 4,
+            0xFD => 4,
+            0xFE => 8,
+            0xFF => 16,
+        };
+    }
+
+    fn cb_cycles_t(memory: *Memory, expected_next_pc: u16) u16 {
+        const cb_opcode = memory.read(expected_next_pc -% 1);
+        const x: u8 = cb_opcode >> 6;
+        const z: u8 = cb_opcode & 0x07;
+
+        if (z != 0x06) return 8;
+        if (x == 1) return 12;
+        return 16;
     }
 
     pub fn increment_pc(self: *Cpu) void {
