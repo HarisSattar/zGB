@@ -431,8 +431,13 @@ pub fn ld_a_nn(cpu: *Cpu, memory: *Memory) void {
     std.debug.print("RUN OPCODE: {s}\n", .{"LD A,(nn)"});
     cpu.registers.af.bytes.a = memory.read(read_16bit(cpu, memory));
 }
-pub fn ldh_a_nn(_: *Cpu, _: *Memory) void {
-    std.debug.print("RUN OPCODE: {s}\n", .{"LDH A,(n)"});
+pub fn ldh_a_nn(cpu: *Cpu, memory: *Memory) void {
+    std.debug.print("RUN OPCODE: {s}\n", .{"LDH A,(nn)"});
+    const n = read_8bit(cpu, memory);
+    const addr: u16 = IO_BASE + @as(u16, n);
+    const value: u8 = memory.read(addr);
+    std.debug.print("LDH read addr=0x{X:0>4} n=0x{X:0>2} value=0x{X:0>2} '{c}'\n", .{ addr, n, value, value });
+    cpu.registers.af.bytes.a = value;
 }
 pub fn ld_a_from_c(cpu: *Cpu, memory: *Memory) void {
     std.debug.print("RUN OPCODE: {s}\n", .{"LD A,(C)"});
@@ -550,49 +555,160 @@ pub fn dec_sp(_: *Cpu, _: *Memory) void {
 // Add - 8-bit (ADD A,r)
 // ============================================================================
 
-pub fn add_a_b(_: *Cpu, _: *Memory) void {
+pub fn add_a_b(cpu: *Cpu, memory: *Memory) void {
+    _ = memory; // Unused parameter
     std.debug.print("RUN OPCODE: {s}\n", .{"ADD A,B"});
+    cpu.registers.af.bytes.a +%= cpu.registers.bc.bytes.b;
+    cpu.registers.af.bytes.f = .{
+        .z = if (cpu.registers.af.bytes.a == 0) 1 else 0,
+        .n = 0,
+        .h = if (((cpu.registers.af.bytes.a & 0x0F) + (cpu.registers.bc.bytes.b & 0x0F)) > 0x0F) 1 else 0,
+        .c = if ((@as(u16, cpu.registers.af.bytes.a) + @as(u16, cpu.registers.bc.bytes.b)) > 0xFF) 1 else 0,
+    };
 }
-pub fn add_a_c(_: *Cpu, _: *Memory) void {
+pub fn add_a_c(cpu: *Cpu, memory: *Memory) void {
+    _ = memory; // Unused parameter
     std.debug.print("RUN OPCODE: {s}\n", .{"ADD A,C"});
+    cpu.registers.af.bytes.a +%= cpu.registers.bc.bytes.c;
+    cpu.registers.af.bytes.f = .{
+        .z = if (cpu.registers.af.bytes.a == 0) 1 else 0,
+        .n = 0,
+        .h = if (((cpu.registers.af.bytes.a & 0x0F) + (cpu.registers.bc.bytes.c & 0x0F)) > 0x0F) 1 else 0,
+        .c = if ((@as(u16, cpu.registers.af.bytes.a) + @as(u16, cpu.registers.bc.bytes.c)) > 0xFF) 1 else 0,
+    };
 }
-pub fn add_a_d(_: *Cpu, _: *Memory) void {
+pub fn add_a_d(cpu: *Cpu, memory: *Memory) void {
+    _ = memory; // Unused parameter
     std.debug.print("RUN OPCODE: {s}\n", .{"ADD A,D"});
+    cpu.registers.af.bytes.a +%= cpu.registers.de.bytes.d;
+    cpu.registers.af.bytes.f = .{
+        .z = if (cpu.registers.af.bytes.a == 0) 1 else 0,
+        .n = 0,
+        .h = if (((cpu.registers.af.bytes.a & 0x0F) + (cpu.registers.de.bytes.d & 0x0F)) > 0x0F) 1 else 0,
+        .c = if ((@as(u16, cpu.registers.af.bytes.a) + @as(u16, cpu.registers.de.bytes.d)) > 0xFF) 1 else 0,
+    };
 }
-pub fn add_a_e(_: *Cpu, _: *Memory) void {
+pub fn add_a_e(cpu: *Cpu, memory: *Memory) void {
+    _ = memory; // Unused parameter
     std.debug.print("RUN OPCODE: {s}\n", .{"ADD A,E"});
+    cpu.registers.af.bytes.a +%= cpu.registers.de.bytes.e;
+    cpu.registers.af.bytes.f = .{
+        .z = if (cpu.registers.af.bytes.a == 0) 1 else 0,
+        .n = 0,
+        .h = if (((cpu.registers.af.bytes.a & 0x0F) + (cpu.registers.de.bytes.e & 0x0F)) > 0x0F) 1 else 0,
+        .c = if ((@as(u16, cpu.registers.af.bytes.a) + @as(u16, cpu.registers.de.bytes.e)) > 0xFF) 1 else 0,
+    };
 }
-pub fn add_a_h(_: *Cpu, _: *Memory) void {
+pub fn add_a_h(cpu: *Cpu, memory: *Memory) void {
+    _ = memory; // Unused parameter
     std.debug.print("RUN OPCODE: {s}\n", .{"ADD A,H"});
+    cpu.registers.af.bytes.a +%= cpu.registers.hl.bytes.h;
+    cpu.registers.af.bytes.f = .{
+        .z = if (cpu.registers.af.bytes.a == 0) 1 else 0,
+        .n = 0,
+        .h = if (((cpu.registers.af.bytes.a & 0x0F) + (cpu.registers.hl.bytes.h & 0x0F)) > 0x0F) 1 else 0,
+        .c = if ((@as(u16, cpu.registers.af.bytes.a) + @as(u16, cpu.registers.hl.bytes.h)) > 0xFF) 1 else 0,
+    };
 }
-pub fn add_a_l(_: *Cpu, _: *Memory) void {
+pub fn add_a_l(cpu: *Cpu, memory: *Memory) void {
+    _ = memory; // Unused parameter
     std.debug.print("RUN OPCODE: {s}\n", .{"ADD A,L"});
+    cpu.registers.af.bytes.a +%= cpu.registers.hl.bytes.l;
+    cpu.registers.af.bytes.f = .{
+        .z = if (cpu.registers.af.bytes.a == 0) 1 else 0,
+        .n = 0,
+        .h = if (((cpu.registers.af.bytes.a & 0x0F) + (cpu.registers.hl.bytes.l & 0x0F)) > 0x0F) 1 else 0,
+        .c = if ((@as(u16, cpu.registers.af.bytes.a) + @as(u16, cpu.registers.hl.bytes.l)) > 0xFF) 1 else 0,
+    };
 }
-pub fn add_a_hli(_: *Cpu, _: *Memory) void {
+pub fn add_a_hli(cpu: *Cpu, memory: *Memory) void {
     std.debug.print("RUN OPCODE: {s}\n", .{"ADD A,(HL)"});
+    const value = memory.read(cpu.registers.hl.pair);
+    cpu.registers.af.bytes.a +%= value;
+    cpu.registers.af.bytes.f = .{
+        .z = if (cpu.registers.af.bytes.a == 0) 1 else 0,
+        .n = 0,
+        .h = if (((cpu.registers.af.bytes.a & 0x0F) + (value & 0x0F)) > 0x0F) 1 else 0,
+        .c = if ((@as(u16, cpu.registers.af.bytes.a) + @as(u16, value)) > 0xFF) 1 else 0,
+    };
 }
-pub fn add_a_a(_: *Cpu, _: *Memory) void {
+pub fn add_a_a(cpu: *Cpu, memory: *Memory) void {
+    _ = memory; // Unused parameter
     std.debug.print("RUN OPCODE: {s}\n", .{"ADD A,A"});
+    cpu.registers.af.bytes.a +%= cpu.registers.af.bytes.a;
+    cpu.registers.af.bytes.f = .{
+        .z = if (cpu.registers.af.bytes.a == 0) 1 else 0,
+        .n = 0,
+        .h = if (((cpu.registers.af.bytes.a & 0x0F) + (cpu.registers.af.bytes.a & 0x0F)) > 0x0F) 1 else 0,
+        .c = if ((@as(u16, cpu.registers.af.bytes.a) + @as(u16, cpu.registers.af.bytes.a)) > 0xFF) 1 else 0,
+    };
 }
-pub fn add_a_n(_: *Cpu, _: *Memory) void {
+pub fn add_a_n(cpu: *Cpu, memory: *Memory) void {
     std.debug.print("RUN OPCODE: {s}\n", .{"ADD A,n"});
+    const n = read_8bit(cpu, memory);
+    cpu.registers.af.bytes.a +%= n;
+    cpu.registers.af.bytes.f = .{
+        .z = if (cpu.registers.af.bytes.a == 0) 1 else 0,
+        .n = 0,
+        .h = if (((cpu.registers.af.bytes.a & 0x0F) + (n & 0x0F)) > 0x0F) 1 else 0,
+        .c = if ((@as(u16, cpu.registers.af.bytes.a) + @as(u16, n)) > 0xFF) 1 else 0,
+    };
 }
 
 // Add - 16-bit (ADD HL,rr)
-pub fn add_hl_bc(_: *Cpu, _: *Memory) void {
+pub fn add_hl_bc(cpu: *Cpu, _: *Memory) void {
     std.debug.print("RUN OPCODE: {s}\n", .{"ADD HL,BC"});
+    cpu.registers.hl.pair +%= cpu.registers.bc.pair;
+    cpu.registers.af.bytes.f = .{
+        .z = 0,
+        .n = 0,
+        .h = if (((cpu.registers.hl.pair & 0x0FFF) + (cpu.registers.bc.pair & 0x0FFF)) > 0x0FFF) 1 else 0,
+        .c = if ((@as(u32, cpu.registers.hl.pair) + @as(u32, cpu.registers.bc.pair)) > 0xFFFF) 1 else 0,
+    };
 }
-pub fn add_hl_de(_: *Cpu, _: *Memory) void {
+pub fn add_hl_de(cpu: *Cpu, _: *Memory) void {
     std.debug.print("RUN OPCODE: {s}\n", .{"ADD HL,DE"});
+    cpu.registers.hl.pair +%= cpu.registers.de.pair;
+    cpu.registers.af.bytes.f = .{
+        .z = 0,
+        .n = 0,
+        .h = if (((cpu.registers.hl.pair & 0x0FFF) + (cpu.registers.de.pair & 0x0FFF)) > 0x0FFF) 1 else 0,
+        .c = if ((@as(u32, cpu.registers.hl.pair) + @as(u32, cpu.registers.de.pair)) > 0xFFFF) 1 else 0,
+    };
 }
-pub fn add_hl_hl(_: *Cpu, _: *Memory) void {
+pub fn add_hl_hl(cpu: *Cpu, _: *Memory) void {
     std.debug.print("RUN OPCODE: {s}\n", .{"ADD HL,HL"});
+    cpu.registers.hl.pair +%= cpu.registers.hl.pair;
+    cpu.registers.af.bytes.f = .{
+        .z = 0,
+        .n = 0,
+        .h = if (((cpu.registers.hl.pair & 0x0FFF) + (cpu.registers.hl.pair & 0x0FFF)) > 0x0FFF) 1 else 0,
+        .c = if ((@as(u32, cpu.registers.hl.pair) + @as(u32, cpu.registers.hl.pair)) > 0xFFFF) 1 else 0,
+    };
 }
-pub fn add_hl_sp(_: *Cpu, _: *Memory) void {
+pub fn add_hl_sp(cpu: *Cpu, _: *Memory) void {
     std.debug.print("RUN OPCODE: {s}\n", .{"ADD HL,SP"});
+    cpu.registers.hl.pair +%= cpu.registers.sp;
+    cpu.registers.af.bytes.f = .{
+        .z = 0,
+        .n = 0,
+        .h = if (((cpu.registers.hl.pair & 0x0FFF) + (cpu.registers.sp & 0x0FFF)) > 0x0FFF) 1 else 0,
+        .c = if ((@as(u32, cpu.registers.hl.pair) + @as(u32, cpu.registers.sp)) > 0xFFFF) 1 else 0,
+    };
 }
-pub fn add_sp_n(_: *Cpu, _: *Memory) void {
+pub fn add_sp_n(cpu: *Cpu, memory: *Memory) void {
     std.debug.print("RUN OPCODE: {s}\n", .{"ADD SP,n"});
+    const offset_i8: i8 = @bitCast(read_8bit(cpu, memory));
+    const offset_i16: i16 = offset_i8;
+    const offset_u16: u16 = @bitCast(offset_i16);
+
+    cpu.registers.sp +%= offset_u16;
+    cpu.registers.af.bytes.f = .{
+        .z = 0,
+        .n = 0,
+        .h = if (((cpu.registers.sp & 0x0FFF) + (offset_u16 & 0x0FFF)) > 0x0FFF) 1 else 0,
+        .c = if ((@as(u32, cpu.registers.sp) + @as(u32, offset_u16)) > 0xFFFF) 1 else 0,
+    };
 }
 
 // ============================================================================
@@ -695,32 +811,97 @@ pub fn sbc_a_n(_: *Cpu, _: *Memory) void {
 // Logical AND (AND r)
 // ============================================================================
 
-pub fn and_b(_: *Cpu, _: *Memory) void {
+pub fn and_b(cpu: *Cpu, _: *Memory) void {
     std.debug.print("RUN OPCODE: {s}\n", .{"AND B"});
+    cpu.registers.af.bytes.a &= cpu.registers.bc.bytes.b;
+    cpu.registers.af.bytes.f = .{
+        .z = if (cpu.registers.af.bytes.a == 0) 1 else 0,
+        .n = 0,
+        .h = 1,
+        .c = 0,
+    };
 }
-pub fn and_c(_: *Cpu, _: *Memory) void {
+pub fn and_c(cpu: *Cpu, _: *Memory) void {
     std.debug.print("RUN OPCODE: {s}\n", .{"AND C"});
+    cpu.registers.af.bytes.a &= cpu.registers.bc.bytes.c;
+    cpu.registers.af.bytes.f = .{
+        .z = if (cpu.registers.af.bytes.a == 0) 1 else 0,
+        .n = 0,
+        .h = 1,
+        .c = 0,
+    };
 }
-pub fn and_d(_: *Cpu, _: *Memory) void {
+pub fn and_d(cpu: *Cpu, _: *Memory) void {
     std.debug.print("RUN OPCODE: {s}\n", .{"AND D"});
+    cpu.registers.af.bytes.a &= cpu.registers.de.bytes.d;
+    cpu.registers.af.bytes.f = .{
+        .z = if (cpu.registers.af.bytes.a == 0) 1 else 0,
+        .n = 0,
+        .h = 1,
+        .c = 0,
+    };
 }
-pub fn and_e(_: *Cpu, _: *Memory) void {
+pub fn and_e(cpu: *Cpu, _: *Memory) void {
     std.debug.print("RUN OPCODE: {s}\n", .{"AND E"});
+    cpu.registers.af.bytes.a &= cpu.registers.de.bytes.e;
+    cpu.registers.af.bytes.f = .{
+        .z = if (cpu.registers.af.bytes.a == 0) 1 else 0,
+        .n = 0,
+        .h = 1,
+        .c = 0,
+    };
 }
-pub fn and_h(_: *Cpu, _: *Memory) void {
+pub fn and_h(cpu: *Cpu, _: *Memory) void {
     std.debug.print("RUN OPCODE: {s}\n", .{"AND H"});
+    cpu.registers.af.bytes.a &= cpu.registers.hl.bytes.h;
+    cpu.registers.af.bytes.f = .{
+        .z = if (cpu.registers.af.bytes.a == 0) 1 else 0,
+        .n = 0,
+        .h = 1,
+        .c = 0,
+    };
 }
-pub fn and_l(_: *Cpu, _: *Memory) void {
+pub fn and_l(cpu: *Cpu, _: *Memory) void {
     std.debug.print("RUN OPCODE: {s}\n", .{"AND L"});
+    cpu.registers.af.bytes.a &= cpu.registers.hl.bytes.l;
+    cpu.registers.af.bytes.f = .{
+        .z = if (cpu.registers.af.bytes.a == 0) 1 else 0,
+        .n = 0,
+        .h = 1,
+        .c = 0,
+    };
 }
-pub fn and_hli(_: *Cpu, _: *Memory) void {
+pub fn and_hli(cpu: *Cpu, memory: *Memory) void {
     std.debug.print("RUN OPCODE: {s}\n", .{"AND (HL)"});
+    const value = memory.read(cpu.registers.hl.pair);
+    cpu.registers.af.bytes.a &= value;
+    cpu.registers.af.bytes.f = .{
+        .z = if (cpu.registers.af.bytes.a == 0) 1 else 0,
+        .n = 0,
+        .h = 1,
+        .c = 0,
+    };
 }
-pub fn and_a(_: *Cpu, _: *Memory) void {
+pub fn and_a(cpu: *Cpu, _: *Memory) void {
     std.debug.print("RUN OPCODE: {s}\n", .{"AND A"});
+    cpu.registers.af.bytes.a &= cpu.registers.af.bytes.a;
+    cpu.registers.af.bytes.f = .{
+        .z = if (cpu.registers.af.bytes.a == 0) 1 else 0,
+        .n = 0,
+        .h = 1,
+        .c = 0,
+    };
 }
-pub fn and_n(_: *Cpu, _: *Memory) void {
+pub fn and_n(cpu: *Cpu, memory: *Memory) void {
     std.debug.print("RUN OPCODE: {s}\n", .{"AND n"});
+    const value = read_8bit(cpu, memory);
+    cpu.registers.af.bytes.a &= value;
+    cpu.registers.af.bytes.f = .{
+        .z = if (cpu.registers.af.bytes.a == 0) 1 else 0,
+        .n = 0,
+        .h = 1,
+        .c = 0,
+    };
 }
 
 // ============================================================================
@@ -1040,11 +1221,13 @@ pub fn halt(_: *Cpu, _: *Memory) void {
 pub fn stop(_: *Cpu, _: *Memory) void {
     std.debug.print("RUN OPCODE: {s}\n", .{"STOP"});
 }
-pub fn di(_: *Cpu, _: *Memory) void {
+pub fn di(cpu: *Cpu, _: *Memory) void {
     std.debug.print("RUN OPCODE: {s}\n", .{"DI"});
+    cpu.ime = false; // Disable interrupts
 }
-pub fn ei(_: *Cpu, _: *Memory) void {
+pub fn ei(cpu: *Cpu, _: *Memory) void {
     std.debug.print("RUN OPCODE: {s}\n", .{"EI"});
+    cpu.ime = true; // Enable interrupts
 }
 pub fn daa(_: *Cpu, _: *Memory) void {
     std.debug.print("RUN OPCODE: {s}\n", .{"DAA"});

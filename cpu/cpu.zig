@@ -55,6 +55,7 @@ pub const Registers = packed struct(u96) {
 
 pub const Cpu = struct {
     registers: Registers = .{},
+    ime: bool = false,
 
     pub fn step(self: *Cpu, memory: *Memory) void {
         // std.debug.print("PC=0x{X:0>4}: ", .{self.registers.pc});

@@ -13,6 +13,8 @@ pub fn main() !void {
     std.debug.print("{f}\n", .{gameBoy.cpu.registers});
 
     try gameBoy.load(allocator, "cpu_instrs.gb");
+    // try gameBoy.load(allocator, "tetris.gb");
+
     std.debug.print("Cartridge Details:\n{f}\n", .{gameBoy.memory.cartridge});
 
     gameBoy.cpu.step(&gameBoy.memory);
